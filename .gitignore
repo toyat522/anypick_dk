@@ -1,0 +1,8 @@
+*.swp
+*.egg-info/
+*__pycache__*
+*.pyc
+build/
+*.zip
+*.log
+logs/
