@@ -2,11 +2,7 @@ import logging
 import numpy as np
 import time
 
-from anypick_dk.constants import (
-    IIWA_LEN,
-    IRIS_ANIM_INTERP,
-    IRIS_ANIM_SLEEP,
-)
+from anypick_dk.constants import IIWA_LEN
 from manipulation.meshcat_utils import PublishPositionTrajectory
 from manipulation.station import LoadScenario, MakeHardwareStation
 from pydrake.all import (
@@ -80,11 +76,11 @@ class SimEnvironment:
             result = Solve(prog)
             assert result.is_success()
             q_next = result.GetSolution(qvar)[:IIWA_LEN]
-            for t in np.append(np.arange(0, 1, IRIS_ANIM_INTERP * np.linalg.norm(q_next - q)), 1):
+            for t in np.append(np.arange(0, 1, 20 * np.linalg.norm(q_next - q)), 1):
                 qs = t * q_next + (1 - t) * q
                 self.set_iiwa_position(qs)
                 self.publish_diagram()
-                time.sleep(IRIS_ANIM_SLEEP)
+                time.sleep(0.05)
             q = q_next
 
         self.meshcat.DeleteButton("Stop Animation")
