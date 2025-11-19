@@ -1,7 +1,7 @@
 import importlib.resources as resources
 import numpy as np
 
-from anypick_dk.constants import IIWA_LEN, WSG_VEL_BOUND
+from anypick_dk.constants import IIWA_LEN, WSG_LEN, WSG_VEL_BOUND
 from anypick_dk.planner import Planner
 from anypick_dk.sim_environment import SimEnvironment
 from pydrake.all import (

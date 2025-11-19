@@ -16,6 +16,7 @@ from pydrake.all import (
     MathematicalProgram,
     Meshcat,
     MultibodyPlant,
+    PiecewisePolynomial,
     Solve,
     StartMeshcat,
 )
@@ -32,6 +33,7 @@ class SimEnvironment:
         self.iiwa = self.plant.GetModelInstanceByName("iiwa")
         self.wsg = self.plant.GetModelInstanceByName("wsg")
         self.ee_frame = self.plant.GetFrameByName("body")
+        self.visualizer = self.station.GetSubsystemByName("meshcat_visualizer(illustration)")
 
         self.diagram = builder.Build()
 
@@ -88,8 +90,27 @@ class SimEnvironment:
         self.meshcat.DeleteButton("Stop Animation")
 
     def visualize_traj(self, traj: CompositeTrajectory) -> None:
-        PublishPositionTrajectory(traj, self.diagram_context, self.plant, self.meshcat)
-        self.meshcat.ForcedPublish(self.meshcat.GetMyContextFromRoot(self.diagram_context))
+        # Sample the 9-DOF trajectory
+        t_samples = np.linspace(traj.start_time(), traj.end_time(), 100)
+        robot_positions = np.array([traj.value(t).flatten() for t in t_samples]).T  # 9 x N
+        
+        # Create full 51-DOF trajectory
+        num_positions = self.plant.num_positions()
+        full_positions = np.zeros((num_positions, len(t_samples)))
+        
+        # First 9 DOFs: robot trajectory from GCS
+        full_positions[:9, :] = robot_positions
+        
+        # Remaining 42 DOFs: keep objects stationary at their current positions
+        full_state = self.plant.GetPositions(self.plant.GetMyContextFromRoot(self.diagram_context))
+        full_positions[9:, :] = full_state[9:].reshape(-1, 1)
+        
+        # Create the padded trajectory
+        full_traj = PiecewisePolynomial.CubicShapePreserving(t_samples, full_positions)
+        
+        # Visualize trajectory
+        PublishPositionTrajectory(full_traj, self.diagram_context, self.plant, self.visualizer)
+        self.visualizer.ForcedPublish(self.visualizer.GetMyContextFromRoot(self.diagram_context))
 
     def clear_visualization(self) -> None:
         self.meshcat.Delete()

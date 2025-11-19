@@ -8,6 +8,7 @@ from anypick_dk.constants import (
 )
 from anypick_dk.sim_environment import SimEnvironment
 from pydrake.all import (
+    CompositeTrajectory,
     GcsTrajectoryOptimization,
     GraphOfConvexSetsOptions,
     HPolyhedron,
@@ -67,7 +68,7 @@ class Planner:
         self.sim_env.set_iiwa_position(q0)
         return region
 
-    def solve_gcs(self, source: Subgraph, target: Subgraph) -> Optional[GcsTrajectoryOptimization]:
+    def solve_gcs(self, source: Subgraph, target: Subgraph) -> Optional[CompositeTrajectory]:
         assert self.gcs is not None, "Planner needs to call set_base_gcs first"
 
         options = GraphOfConvexSetsOptions()
