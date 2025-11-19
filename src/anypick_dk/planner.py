@@ -2,37 +2,19 @@ from typing import List, Optional
 
 import logging
 import numpy as np
-import pydot
 from anypick_dk.constants import (
     IIWA_LEN,
     p_EETip
 )
 from anypick_dk.sim_environment import SimEnvironment
-from manipulation.meshcat_utils import PublishPositionTrajectory
-from manipulation.scenarios import AddIiwa, AddWsg
-from manipulation.utils import ConfigureParser
 from pydrake.all import (
-    AddDefaultVisualization,
-    CompositeTrajectory,
-    Context,
-    Diagram,
     GcsTrajectoryOptimization,
-    GraphOfConvexSets,
     GraphOfConvexSetsOptions,
     HPolyhedron,
     InverseKinematics,
     IrisInConfigurationSpace,
     IrisOptions,
-    LoadIrisRegionsYamlFile,
-    MathematicalProgram,
-    MultibodyPlant,
-    Point,
-    Rgba,
-    RigidBodyFrame,
-    RigidTransform,
-    SaveIrisRegionsYamlFile,
     Solve,
-    Sphere,
 )
 Subgraph = GcsTrajectoryOptimization.Subgraph
 
@@ -69,7 +51,7 @@ class Planner:
     def set_base_gcs(self, gcs: GcsTrajectoryOptimization) -> None:
         self.gcs = gcs
 
-    def create_iris_region(self, q_seed: np.ndarray, iris_cspae_margin: float = 0.02) -> HPolyhedron:
+    def create_iris_region(self, q_seed: np.ndarray, iris_cspace_margin: float = 0.02) -> HPolyhedron:
         # Save initial plant position
         q0 = self.sim_env.get_iiwa_position()
 
@@ -78,7 +60,7 @@ class Planner:
         options = IrisOptions()
         options.num_collision_infeasible_samples = 3
         options.require_sample_point_is_contained = True
-        options.configuration_space_margin = iris_cspae_margin 
+        options.configuration_space_margin = iris_cspace_margin 
         region = IrisInConfigurationSpace(self.sim_env.plant, self.sim_env.plant_context, options)
 
         # Restore initial plant position
@@ -100,9 +82,3 @@ class Planner:
 
         self.logger.info("GCS path successfully found")
         return traj
-
-    def show_gcs_graph(self, path: str = "graph.svg") -> None:
-        svg = pydot.graph_from_dot_data(self.gcs.GetGraphvizString())[0].create_svg()
-        with open(path, "wb") as f:
-            f.write(svg)
-            self.logger.info(f"Saved SVG to '{path}'")

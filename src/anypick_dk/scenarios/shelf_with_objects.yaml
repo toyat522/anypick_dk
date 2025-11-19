@@ -48,48 +48,48 @@ directives:
     name: cheez_it
     file: package://manipulation/hydro/003_cracker_box.sdf
     default_free_body_pose:
-        base_link_cheez_it:
-            translation: [0.05, -0.38, 0.05]
+        base_link_cracker:
+            translation: [0.05, 0.45, 0.2]
             rotation: !Rpy { deg: [-87, 0, 0] }
 
 - add_model:
     name: sugar_box
     file: package://manipulation/hydro/004_sugar_box.sdf
     default_free_body_pose:
-        base_link_sugar_box:
-            translation: [0.1, 0.15, -0.035]
+        base_link_sugar:
+            translation: [0.1, 0.4, 0.2]
             rotation: !Rpy { deg: [-90, 0, -90] }
 
 - add_model:
     name: soup_can
     file: package://manipulation/hydro/005_tomato_soup_can.sdf
     default_free_body_pose:
-        base_link_soup_can:
-            translation: [0.1, -0.17, -0.072]
+        base_link_soup:
+            translation: [0.1, 0.39, 0.2]
             rotation: !Rpy { deg: [-90, 0, -90] }
 
 - add_model:
     name: soup_can2
     file: package://manipulation/hydro/005_tomato_soup_can.sdf
     default_free_body_pose:
-        base_link_soup_can2:
-            translation: [0.1, -0.17, 0.03]
+        base_link_soup:
+            translation: [0.1, 0.42, 0.2]
             rotation: !Rpy { deg: [-90, 0, -90] }
 
 - add_model:
     name: gelatin_box
     file: package://manipulation/hydro/009_gelatin_box.sdf
     default_free_body_pose:
-        base_link_gelatin_box:
-            translation: [0.1, 0.02, -0.087]
+        base_link_gelatin:
+            translation: [0.1, 0.39, 0.2]
             rotation: !Rpy { deg: [-90, 0, -90] }
 
 - add_model:
     name: gelatin_box2
     file: package://manipulation/hydro/009_gelatin_box.sdf
     default_free_body_pose:
-        base_link_gelatin_box2:
-            translation: [0.03, -0.01, -0.087]
+        base_link_gelatin:
+            translation: [0.03, 0.35, 0.2]
             rotation: !Rpy { deg: [-90, 0, -90] }
 
 model_drivers:

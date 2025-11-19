@@ -8,30 +8,16 @@ from anypick_dk.constants import (
     IRIS_ANIM_SLEEP,
 )
 from manipulation.meshcat_utils import PublishPositionTrajectory
-from manipulation.scenarios import AddIiwa, AddWsg
 from manipulation.station import LoadScenario, MakeHardwareStation
-from manipulation.utils import ConfigureParser
 from pydrake.all import (
-    AddDefaultVisualization,
-    AddMultibodyPlantSceneGraph,
     CompositeTrajectory,
-    Context,
-    Diagram,
     DiagramBuilder,
     HPolyhedron,
     MathematicalProgram,
     Meshcat,
     MultibodyPlant,
-    Parser,
-    Point,
-    Rgba,
-    RigidBodyFrame,
-    RigidTransform,
-    SaveIrisRegionsYamlFile,
     Solve,
-    Sphere,
     StartMeshcat,
-    System,
 )
 
 
