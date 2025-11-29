@@ -2,7 +2,8 @@ import logging
 import numpy as np
 import time
 
-from anypick_dk.constants import IIWA_LEN
+from anypick_dk.constants import IIWA_LEN, SIM_END_SECS
+from anypick_dk.utils import reshape_trajectory
 from manipulation.meshcat_utils import PublishPositionTrajectory
 from manipulation.station import LoadScenario, MakeHardwareStation
 from pydrake.all import (
@@ -11,34 +12,91 @@ from pydrake.all import (
     HPolyhedron,
     MathematicalProgram,
     Meshcat,
+    ModelInstanceIndex,
     MultibodyPlant,
-    PiecewisePolynomial,
+    Parser,
+    RevoluteJoint,
+    Simulator,
     Solve,
     StartMeshcat,
+    TrajectorySource,
 )
+from typing import Optional
 
 
 class SimEnvironment:
+
+    sim_time: Optional[float] = None
+    plant: MultibodyPlant
+
     def __init__(self, scenario_file: str):
         self.meshcat: Meshcat = StartMeshcat()
-        scenario = LoadScenario(filename=scenario_file)
-        builder = DiagramBuilder()
+        self.scenario = LoadScenario(filename=scenario_file)
 
-        self.station = builder.AddSystem(MakeHardwareStation(scenario, self.meshcat))
-        self.plant: MultibodyPlant = self.station.GetSubsystemByName("plant")
+        builder = DiagramBuilder()
+        self.station = builder.AddSystem(MakeHardwareStation(self.scenario, self.meshcat))
+        self.plant = self.station.GetSubsystemByName("plant")
         self.iiwa = self.plant.GetModelInstanceByName("iiwa")
         self.wsg = self.plant.GetModelInstanceByName("wsg")
         self.ee_frame = self.plant.GetFrameByName("body")
         self.visualizer = self.station.GetSubsystemByName("meshcat_visualizer(illustration)")
 
         self.diagram = builder.Build()
-
         self.diagram_context = self.diagram.CreateDefaultContext()
         self.station_context = self.diagram.GetSubsystemContext(self.station, self.diagram_context)
         self.plant_context = self.plant.GetMyContextFromRoot(self.diagram_context)
 
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
+
+    def build_diagram_with_controller(self, iiwa_traj: CompositeTrajectory,
+                                      wsg_traj: CompositeTrajectory) -> None:
+        iiwa_traj = reshape_trajectory(iiwa_traj, out_dim=IIWA_LEN)
+        self.sim_time = iiwa_traj.end_time()
+
+        builder = DiagramBuilder()
+        self.station = builder.AddSystem(MakeHardwareStation(self.scenario, self.meshcat))
+        self.plant = self.station.GetSubsystemByName("plant")
+        self.iiwa = self.plant.GetModelInstanceByName("iiwa")
+        self.wsg = self.plant.GetModelInstanceByName("wsg")
+        self.ee_frame = self.plant.GetFrameByName("body")
+        self.visualizer = self.station.GetSubsystemByName("meshcat_visualizer(illustration)")
+
+        controller_plant = MultibodyPlant(time_step=self.plant.time_step())
+        self._add_iiwa(controller_plant)
+        controller_plant.Finalize()
+
+        iiwa_traj_source = builder.AddSystem(TrajectorySource(iiwa_traj))
+        builder.Connect(
+            iiwa_traj_source.get_output_port(),
+            self.station.GetInputPort("iiwa.position")
+        )
+
+        wsg_traj_source = builder.AddSystem(TrajectorySource(wsg_traj))
+        builder.Connect(
+            wsg_traj_source.get_output_port(),
+            self.station.GetInputPort("wsg.position")
+        )
+
+        self.diagram = builder.Build()
+        self.diagram_context = self.diagram.CreateDefaultContext()
+        self.station_context = self.diagram.GetSubsystemContext(self.station, self.diagram_context)
+        self.plant_context = self.plant.GetMyContextFromRoot(self.diagram_context)
+
+    def _add_iiwa(self, plant) -> ModelInstanceIndex:
+        parser = Parser(plant)
+        iiwa = parser.AddModelsFromUrl(
+            f"package://drake_models/iiwa_description/sdf/iiwa7_with_box_collision.sdf"
+        )[0]
+        plant.WeldFrames(plant.world_frame(), plant.GetFrameByName("iiwa_link_0"))
+        q0 = [0.0, 0.1, 0, -1.2, 0, 1.6, 0]
+        index = 0
+        for joint_index in plant.GetJointIndices(iiwa):
+            joint = plant.get_mutable_joint(joint_index)
+            if isinstance(joint, RevoluteJoint):
+                joint.set_default_angle(q0[index])
+                index += 1
+        return iiwa
 
     def get_iiwa_position(self) -> tuple:
         return self.plant.GetPositions(self.plant_context, self.iiwa)
@@ -86,27 +144,27 @@ class SimEnvironment:
         self.meshcat.DeleteButton("Stop Animation")
 
     def visualize_traj(self, traj: CompositeTrajectory) -> None:
-        # Sample the 9-DOF trajectory
-        t_samples = np.linspace(traj.start_time(), traj.end_time(), 100)
-        robot_positions = np.array([traj.value(t).flatten() for t in t_samples]).T  # 9 x N
-        
-        # Create full 51-DOF trajectory
-        num_positions = self.plant.num_positions()
-        full_positions = np.zeros((num_positions, len(t_samples)))
-        
-        # First 9 DOFs: robot trajectory from GCS
-        full_positions[:9, :] = robot_positions
-        
-        # Remaining 42 DOFs: keep objects stationary at their current positions
-        full_state = self.plant.GetPositions(self.plant.GetMyContextFromRoot(self.diagram_context))
-        full_positions[9:, :] = full_state[9:].reshape(-1, 1)
-        
-        # Create the padded trajectory
-        full_traj = PiecewisePolynomial.CubicShapePreserving(t_samples, full_positions)
-        
-        # Visualize trajectory
+        full_state = self.plant.GetPositions(self.plant_context)
+        full_traj = reshape_trajectory(
+            traj,
+            out_dim=self.plant.num_positions(),
+            fill_value=full_state
+        )
         PublishPositionTrajectory(full_traj, self.diagram_context, self.plant, self.visualizer)
         self.visualizer.ForcedPublish(self.visualizer.GetMyContextFromRoot(self.diagram_context))
 
     def clear_visualization(self) -> None:
         self.meshcat.Delete()
+
+    def simulate(self) -> None:
+        assert self.sim_time is not None, "SimEnvironment needs ot call build_diagram_with_controller first"
+
+        simulator = Simulator(self.diagram, self.diagram_context)
+        self.publish_diagram()
+        self.logger.info(f"Simulation will run for {self.sim_time + SIM_END_SECS} seconds")
+
+        self.meshcat.StartRecording()
+        simulator.set_target_realtime_rate(1.0)
+        simulator.AdvanceTo(self.sim_time + SIM_END_SECS)
+        self.meshcat.StopRecording()
+        self.meshcat.PublishRecording()
