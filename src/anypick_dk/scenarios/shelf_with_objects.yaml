@@ -66,8 +66,43 @@ directives:
     file: package://manipulation/hydro/006_mustard_bottle.sdf
     default_free_body_pose:
         base_link_mustard:
-            translation: [-0.10, 0.58, 0.0]
+            translation: [-0.09, 0.58, 0.0]
             rotation: !Rpy { deg: [0, 0, 10] }
+- add_frame:
+    name: camera0_origin
+    X_PF:
+        base_frame: world
+        rotation: !Rpy { deg: [-100.0, 0.0, 180.0]}
+        translation: [0.15, 1.4, 0.2]
+- add_model:
+    name: camera0
+    file: package://manipulation/camera_box.sdf
+- add_weld:
+    parent: camera0_origin
+    child: camera0::base
+- add_frame:
+    name: camera1_origin
+    X_PF:
+        base_frame: world
+        rotation: !Rpy { deg: [-100.0, 0.0, 0.0]}
+        translation: [0.15, 0.0, 0.2]
+- add_model:
+    name: camera1
+    file: package://manipulation/camera_box.sdf
+- add_weld:
+    parent: camera1_origin
+    child: camera1::base
+cameras:
+    camera0:
+        name: camera0
+        depth: True
+        X_PB:
+            base_frame: camera0::base
+    camera1:
+        name: camera1
+        depth: True
+        X_PB:
+            base_frame: camera1::base
 model_drivers:
     iiwa: !IiwaDriver
         control_mode: position_only

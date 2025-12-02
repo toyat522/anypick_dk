@@ -25,10 +25,10 @@ class Planner:
     gcs: Optional[GcsTrajectoryOptimization] = None
 
     def __init__(self, sim_env: SimEnvironment):
-        self.sim_env = sim_env
-
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
+
+        self.sim_env = sim_env
 
     def solve_fk(self) -> RigidTransform:
         X_WE = self.sim_env.plant.CalcRelativeTransform(
@@ -64,7 +64,6 @@ class Planner:
 
         self.logger.info("IK success")
         return result.GetSolution(q_vars)
-
 
     def solve_ik_pos(self, pos: List, q0: np.ndarray = np.zeros(IIWA_LEN),
                      ik_min_dist: float = 0.01, ik_influence_dist: float = 0.05) -> Optional[np.ndarray]:

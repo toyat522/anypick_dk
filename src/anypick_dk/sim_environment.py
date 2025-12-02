@@ -2,10 +2,10 @@ import logging
 import numpy as np
 import time
 
-from anypick_dk.constants import IIWA_LEN, p_EETip, SIM_END_SECS
+from anypick_dk.constants import IIWA_LEN, SIM_END_SECS
 from anypick_dk.utils import reshape_trajectory
 from manipulation.meshcat_utils import PublishPositionTrajectory
-from manipulation.station import LoadScenario, MakeHardwareStation
+from manipulation.station import AddPointClouds, LoadScenario, MakeHardwareStation
 from pydrake.all import (
     CompositeTrajectory,
     DiagramBuilder,
@@ -30,37 +30,27 @@ class SimEnvironment:
     plant: MultibodyPlant
 
     def __init__(self, scenario_file: str):
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+
         self.meshcat: Meshcat = StartMeshcat()
         self.scenario = LoadScenario(filename=scenario_file)
 
         builder = DiagramBuilder()
-        self.station = builder.AddSystem(MakeHardwareStation(self.scenario, self.meshcat))
-        self.plant = self.station.GetSubsystemByName("plant")
-        self.iiwa = self.plant.GetModelInstanceByName("iiwa")
-        self.wsg = self.plant.GetModelInstanceByName("wsg")
-        self.ee_frame = self.plant.GetFrameByName("body")
-        self.visualizer = self.station.GetSubsystemByName("meshcat_visualizer(illustration)")
+        self._build_default_diagram(builder)
 
         self.diagram = builder.Build()
         self.diagram_context = self.diagram.CreateDefaultContext()
         self.station_context = self.diagram.GetSubsystemContext(self.station, self.diagram_context)
         self.plant_context = self.plant.GetMyContextFromRoot(self.diagram_context)
 
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-
     def build_diagram_with_controller(self, iiwa_traj: CompositeTrajectory,
                                       wsg_traj: CompositeTrajectory) -> None:
         iiwa_traj = reshape_trajectory(iiwa_traj, out_dim=IIWA_LEN)
-        self.sim_time = iiwa_traj.end_time()
+        self.sim_time = iiwa_traj.end_time() + SIM_END_SECS
 
         builder = DiagramBuilder()
-        self.station = builder.AddSystem(MakeHardwareStation(self.scenario, self.meshcat))
-        self.plant = self.station.GetSubsystemByName("plant")
-        self.iiwa = self.plant.GetModelInstanceByName("iiwa")
-        self.wsg = self.plant.GetModelInstanceByName("wsg")
-        self.ee_frame = self.plant.GetFrameByName("body")
-        self.visualizer = self.station.GetSubsystemByName("meshcat_visualizer(illustration)")
+        self._build_default_diagram(builder)
 
         controller_plant = MultibodyPlant(time_step=self.plant.time_step())
         self._add_iiwa(controller_plant)
@@ -83,7 +73,25 @@ class SimEnvironment:
         self.station_context = self.diagram.GetSubsystemContext(self.station, self.diagram_context)
         self.plant_context = self.plant.GetMyContextFromRoot(self.diagram_context)
 
-    def _add_iiwa(self, plant) -> ModelInstanceIndex:
+    def _build_default_diagram(self, builder: DiagramBuilder) -> None:
+        self.station = builder.AddSystem(MakeHardwareStation(self.scenario, self.meshcat))
+        self.plant = self.station.GetSubsystemByName("plant")
+        self.iiwa = self.plant.GetModelInstanceByName("iiwa")
+        self.wsg = self.plant.GetModelInstanceByName("wsg")
+        self.ee_frame = self.plant.GetFrameByName("body")
+        self.visualizer = self.station.GetSubsystemByName("meshcat_visualizer(illustration)")
+
+        to_point_cloud = AddPointClouds(
+            scenario=self.scenario, station=self.station, builder=builder, meshcat=self.meshcat
+        )
+        builder.ExportOutput(
+            to_point_cloud["camera0"].get_output_port(), "camera0_point_cloud"
+        )   
+        builder.ExportOutput(
+            to_point_cloud["camera1"].get_output_port(), "camera1_point_cloud"
+        )   
+
+    def _add_iiwa(self, plant: MultibodyPlant) -> ModelInstanceIndex:
         parser = Parser(plant)
         iiwa = parser.AddModelsFromUrl(
             f"package://drake_models/iiwa_description/sdf/iiwa7_with_box_collision.sdf"
@@ -160,10 +168,10 @@ class SimEnvironment:
         assert self.sim_time is not None, "SimEnvironment needs to call build_diagram_with_controller first"
 
         simulator = Simulator(self.diagram, self.diagram_context)
-        self.logger.info(f"Simulation will run for {self.sim_time + SIM_END_SECS} seconds")
+        self.logger.info(f"Simulation will run for {self.sim_time} seconds")
 
         self.meshcat.StartRecording()
         simulator.set_target_realtime_rate(1.0)
-        simulator.AdvanceTo(self.sim_time + SIM_END_SECS)
+        simulator.AdvanceTo(self.sim_time)
         self.meshcat.StopRecording()
         self.meshcat.PublishRecording()
