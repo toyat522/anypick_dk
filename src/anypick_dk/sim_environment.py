@@ -157,10 +157,9 @@ class SimEnvironment:
         self.meshcat.Delete()
 
     def simulate(self) -> None:
-        assert self.sim_time is not None, "SimEnvironment needs ot call build_diagram_with_controller first"
+        assert self.sim_time is not None, "SimEnvironment needs to call build_diagram_with_controller first"
 
         simulator = Simulator(self.diagram, self.diagram_context)
-        self.publish_diagram()
         self.logger.info(f"Simulation will run for {self.sim_time + SIM_END_SECS} seconds")
 
         self.meshcat.StartRecording()

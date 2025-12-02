@@ -13,7 +13,6 @@ directives:
 - add_weld:
     parent: world
     child: iiwa::iiwa_link_0
-
 - add_model:
     name: wsg
     file: package://manipulation/hydro/schunk_wsg_50_with_tip.sdf
@@ -23,7 +22,6 @@ directives:
     X_PC:
         translation: [0, 0, 0.09]
         rotation: !Rpy { deg: [90, 0, 90]}
-
 - add_model:
     name: table
     file: package://manipulation/table.sdf
@@ -33,7 +31,6 @@ directives:
     X_PC:
         translation: [0.25, 0.25, -0.05]
         rotation: !Rpy { deg: [0, 0, -90] }
-
 - add_model:
     name: shelves
     file: package://manipulation/shelves.sdf
@@ -43,57 +40,36 @@ directives:
     X_PC:
         translation: [0.9, 0, 0.4]
         rotation: !Rpy { deg: [0, 0, 180]}
-
-- add_model:
-    name: cheez_it
-    file: package://manipulation/hydro/003_cracker_box.sdf
-    default_free_body_pose:
-        base_link_cracker:
-            translation: [0.05, 0.45, 0.2]
-            rotation: !Rpy { deg: [-87, 0, 0] }
-
 - add_model:
     name: sugar_box
     file: package://manipulation/hydro/004_sugar_box.sdf
     default_free_body_pose:
         base_link_sugar:
-            translation: [0.1, 0.4, 0.2]
-            rotation: !Rpy { deg: [-90, 0, -90] }
-
+            translation: [0.22, 0.65, 0.085]
+            rotation: !Rpy { deg: [-87, 0, 25] }
 - add_model:
     name: soup_can
     file: package://manipulation/hydro/005_tomato_soup_can.sdf
     default_free_body_pose:
         base_link_soup:
-            translation: [0.1, 0.39, 0.2]
-            rotation: !Rpy { deg: [-90, 0, -90] }
-
-- add_model:
-    name: soup_can2
-    file: package://manipulation/hydro/005_tomato_soup_can.sdf
-    default_free_body_pose:
-        base_link_soup:
-            translation: [0.1, 0.42, 0.2]
-            rotation: !Rpy { deg: [-90, 0, -90] }
-
+            translation: [0.40, 0.73, 0.05]
+            rotation: !Rpy { deg: [-90, 0, -135] }
 - add_model:
     name: gelatin_box
     file: package://manipulation/hydro/009_gelatin_box.sdf
     default_free_body_pose:
         base_link_gelatin:
-            translation: [0.1, 0.39, 0.2]
-            rotation: !Rpy { deg: [-90, 0, -90] }
-
+            translation: [0.05, 0.80, 0.035]
+            rotation: !Rpy { deg: [-90, 0, -40] }
 - add_model:
-    name: gelatin_box2
-    file: package://manipulation/hydro/009_gelatin_box.sdf
+    name: mustard_bottle
+    file: package://manipulation/hydro/006_mustard_bottle.sdf
     default_free_body_pose:
-        base_link_gelatin:
-            translation: [0.03, 0.35, 0.2]
-            rotation: !Rpy { deg: [-90, 0, -90] }
-
+        base_link_mustard:
+            translation: [-0.10, 0.58, 0.0]
+            rotation: !Rpy { deg: [0, 0, 10] }
 model_drivers:
     iiwa: !IiwaDriver
-      control_mode: position_only
-      hand_model_name: wsg
+        control_mode: position_only
+        hand_model_name: wsg
     wsg: !SchunkWsgDriver {}
