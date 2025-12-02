@@ -6,3 +6,16 @@ build/
 *.zip
 *.log
 logs/
+
+venv/
+.env/
+.env.local
+.venv/
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+*.tmp
+*.bak
