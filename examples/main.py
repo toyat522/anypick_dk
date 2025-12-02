@@ -1,4 +1,5 @@
 import importlib.resources as resources
+import logging
 import numpy as np
 
 from anypick_dk.constants import (
@@ -8,6 +9,8 @@ from anypick_dk.planner import Planner
 from anypick_dk.sim_environment import SimEnvironment
 from pydrake.all import GcsTrajectoryOptimization, HPolyhedron, LoadIrisRegionsYamlFile, Point
 Subgraph = GcsTrajectoryOptimization.Subgraph
+
+logging.basicConfig(level=logging.INFO)
 
 
 def create_base_gcs(iris_regions: dict[HPolyhedron],

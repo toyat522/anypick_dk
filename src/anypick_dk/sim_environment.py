@@ -31,7 +31,6 @@ class SimEnvironment:
 
     def __init__(self, scenario_file: str):
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
 
         self.meshcat: Meshcat = StartMeshcat()
         self.scenario = LoadScenario(filename=scenario_file)
@@ -171,7 +170,6 @@ class SimEnvironment:
         self.logger.info(f"Simulation will run for {self.sim_time} seconds")
 
         self.meshcat.StartRecording()
-        simulator.set_target_realtime_rate(1.0)
         simulator.AdvanceTo(self.sim_time)
         self.meshcat.StopRecording()
         self.meshcat.PublishRecording()

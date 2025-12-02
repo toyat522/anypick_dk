@@ -1,6 +1,10 @@
+import cv2
+import logging
+
 from anypick_dk.grounded_sam_wrapper import GroundedSamWrapper
 
-import cv2
+logging.basicConfig(level=logging.INFO)
+
 
 def main():
     gdsam = GroundedSamWrapper()

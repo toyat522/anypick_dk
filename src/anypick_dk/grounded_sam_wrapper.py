@@ -1,10 +1,11 @@
-import os
-import sys
 import cv2
+import logging
 import numpy as np
+import os
+import supervision as sv
+import sys
 import torch
 import torchvision
-import supervision as sv
 
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))     
 PROJECT_ROOT = os.path.abspath(os.path.join(_THIS_DIR, os.pardir, os.pardir))  
@@ -29,6 +30,8 @@ class GroundedSamWrapper:
                  sam_checkpoint_relpath: str = "sam_vit_h_4b8939.pth",
                  sam_encoder: str = "vit_h",
                  device: torch.device = None):
+        self.logger = logging.getLogger(__name__)
+
         if device is None:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.device = device
@@ -99,4 +102,4 @@ class GroundedSamWrapper:
         annotated = box_annotator.annotate(scene=annotated, detections=self.detections)
 
         cv2.imwrite(output_path, annotated)
-        print("Saved annotated image to", output_path)
+        self.logger.info(f"Saved annotated image to {output_path}")

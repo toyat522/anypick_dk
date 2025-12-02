@@ -2,7 +2,7 @@ from typing import List, Optional
 
 import logging
 import numpy as np
-from anypick_dk.constants import IIWA_LEN, PREGRASP_Z, p_EETip
+from anypick_dk.constants import IIWA_LEN, p_EETip
 from anypick_dk.sim_environment import SimEnvironment
 from pydrake.all import (
     CompositeTrajectory,
@@ -26,7 +26,6 @@ class Planner:
 
     def __init__(self, sim_env: SimEnvironment):
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
 
         self.sim_env = sim_env
 
