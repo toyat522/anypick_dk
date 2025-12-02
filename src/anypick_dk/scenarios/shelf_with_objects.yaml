@@ -66,14 +66,14 @@ directives:
     file: package://manipulation/hydro/006_mustard_bottle.sdf
     default_free_body_pose:
         base_link_mustard:
-            translation: [-0.09, 0.58, 0.0]
+            translation: [-0.08, 0.58, 0.0]
             rotation: !Rpy { deg: [0, 0, 10] }
 - add_frame:
     name: camera0_origin
     X_PF:
         base_frame: world
-        rotation: !Rpy { deg: [-100.0, 0.0, 180.0]}
-        translation: [0.15, 1.4, 0.2]
+        rotation: !Rpy { deg: [-110.0, 0.0, 180.0]}
+        translation: [0.15, 1.35, 0.3]
 #- add_model:
 #    name: camera0
 #    file: package://manipulation/camera_box.sdf
@@ -84,8 +84,8 @@ directives:
     name: camera1_origin
     X_PF:
         base_frame: world
-        rotation: !Rpy { deg: [-100.0, 0.0, 0.0]}
-        translation: [0.15, 0.0, 0.2]
+        rotation: !Rpy { deg: [-110.0, 0.0, 0.0]}
+        translation: [0.15, 0.05, 0.3]
 #- add_model:
 #    name: camera1
 #    file: package://manipulation/camera_box.sdf
