@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import time
 
-from anypick_dk.constants import IIWA_LEN, SIM_END_SECS
+from anypick_dk.constants import IIWA_LEN, p_EETip, SIM_END_SECS
 from anypick_dk.utils import reshape_trajectory
 from manipulation.meshcat_utils import PublishPositionTrajectory
 from manipulation.station import LoadScenario, MakeHardwareStation

@@ -1,6 +1,7 @@
 import numpy as np
 
-from pydrake.all import BezierCurve, CompositeTrajectory, PiecewisePolynomial
+from anypick_dk.constants import PREGRASP_Z
+from pydrake.all import BezierCurve, CompositeTrajectory, PiecewisePolynomial, RigidTransform
 from typing import Optional
 
 
@@ -100,3 +101,9 @@ def concat_wsg_traj(traj1, traj2):
     combined = PiecewisePolynomial.FirstOrderHold(all_times, np.hstack([vals1, vals2[:, 1:]]))
     
     return CompositeTrajectory([combined])
+
+def get_pregrasp_pose(pose: RigidTransform) -> RigidTransform:
+    return RigidTransform(
+        pose.rotation(),
+        pose.translation() + np.array([0.0, 0.0, PREGRASP_Z])
+    )

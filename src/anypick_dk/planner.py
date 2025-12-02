@@ -2,10 +2,7 @@ from typing import List, Optional
 
 import logging
 import numpy as np
-from anypick_dk.constants import (
-    IIWA_LEN,
-    p_EETip
-)
+from anypick_dk.constants import IIWA_LEN, PREGRASP_Z, p_EETip
 from anypick_dk.sim_environment import SimEnvironment
 from pydrake.all import (
     CompositeTrajectory,
@@ -15,6 +12,9 @@ from pydrake.all import (
     InverseKinematics,
     IrisInConfigurationSpace,
     IrisOptions,
+    RigidTransform,
+    RollPitchYaw,
+    RotationMatrix,
     Solve,
 )
 Subgraph = GcsTrajectoryOptimization.Subgraph
@@ -30,9 +30,48 @@ class Planner:
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
 
+    def solve_fk(self) -> RigidTransform:
+        X_WE = self.sim_env.plant.CalcRelativeTransform(
+            self.sim_env.plant_context,
+            self.sim_env.plant.world_frame(),
+            self.sim_env.ee_frame,
+        )
+        X_ETip = RigidTransform(p_EETip)
+        return X_WE @ X_ETip
+
+    def solve_ik(self, tf: RigidTransform, q0: np.ndarray = np.zeros(IIWA_LEN),
+                 ang_tol: float = 0.0) -> Optional[np.ndarray]:
+        diagram_context = self.sim_env.diagram_context.Clone()
+        plant_context = self.sim_env.plant.GetMyContextFromRoot(diagram_context)
+
+        ik = InverseKinematics(self.sim_env.plant, plant_context)
+
+        ik.AddPositionConstraint(self.sim_env.ee_frame, p_EETip, self.sim_env.plant.world_frame(),
+                                 tf.translation(), tf.translation())
+
+        ik.AddOrientationConstraint(self.sim_env.plant.world_frame(), tf.rotation(),
+                                    self.sim_env.ee_frame, RotationMatrix(), ang_tol)
+
+        q_vars = ik.q()[:IIWA_LEN]
+        prog = ik.prog()
+        prog.AddQuadraticErrorCost(1, q0, q_vars)
+        prog.SetInitialGuess(q_vars, q0)
+
+        result = Solve(prog)
+        if not result.is_success():
+            self.logger.error("IK failed")
+            return None
+
+        self.logger.info("IK success")
+        return result.GetSolution(q_vars)
+
+
     def solve_ik_pos(self, pos: List, q0: np.ndarray = np.zeros(IIWA_LEN),
                      ik_min_dist: float = 0.01, ik_influence_dist: float = 0.05) -> Optional[np.ndarray]:
-        ik = InverseKinematics(self.sim_env.plant, self.sim_env.plant_context)
+        diagram_context = self.sim_env.diagram_context.Clone()
+        plant_context = self.sim_env.plant.GetMyContextFromRoot(diagram_context)
+
+        ik = InverseKinematics(self.sim_env.plant, plant_context)
         ik.AddMinimumDistanceLowerBoundConstraint(ik_min_dist, ik_influence_dist)
         ik.AddPositionConstraint(self.sim_env.ee_frame, p_EETip, self.sim_env.plant.world_frame(), pos, pos)
 
