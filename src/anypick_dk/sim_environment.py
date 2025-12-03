@@ -5,7 +5,7 @@ import time
 from anypick_dk.constants import IIWA_LEN, SIM_END_SECS
 from anypick_dk.utils import reshape_trajectory
 from manipulation.meshcat_utils import PublishPositionTrajectory
-from manipulation.station import AddPointClouds, LoadScenario, MakeHardwareStation
+from manipulation.station import LoadScenario, MakeHardwareStation
 from pydrake.all import (
     CameraInfo,
     CompositeTrajectory,
@@ -81,16 +81,6 @@ class SimEnvironment:
         self.wsg = self.plant.GetModelInstanceByName("wsg")
         self.ee_frame = self.plant.GetFrameByName("body")
         self.visualizer = self.station.GetSubsystemByName("meshcat_visualizer(illustration)")
-#
-#        to_point_cloud = AddPointClouds(
-#            scenario=self.scenario, station=self.station, builder=builder, meshcat=self.meshcat
-#        )
-#        builder.ExportOutput(
-#            to_point_cloud["camera0"].get_output_port(), "camera0_point_cloud"
-#        )
-#        builder.ExportOutput(
-#            to_point_cloud["camera1"].get_output_port(), "camera1_point_cloud"
-#        )
 
     def _add_iiwa(self, plant: MultibodyPlant) -> ModelInstanceIndex:
         parser = Parser(plant)

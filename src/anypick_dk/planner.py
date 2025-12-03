@@ -1,8 +1,12 @@
 from typing import List, Optional
 
+import importlib.resources as resources
 import logging
 import numpy as np
-from anypick_dk.constants import IIWA_LEN, p_EETip
+from anypick_dk.constants import (
+    IIWA_LEN, p_EETip, q_BotShelfPlace, q_BotShelfPre, q_MidShelfPlace, q_MidShelfPre,
+    q_TopShelfPlace, q_TopShelfPre, WSG_LEN, WSG_VEL_BOUND
+)
 from anypick_dk.sim_environment import SimEnvironment
 from pydrake.all import (
     CompositeTrajectory,
@@ -12,8 +16,9 @@ from pydrake.all import (
     InverseKinematics,
     IrisInConfigurationSpace,
     IrisOptions,
+    LoadIrisRegionsYamlFile,
+    Point,
     RigidTransform,
-    RollPitchYaw,
     RotationMatrix,
     Solve,
 )
@@ -22,12 +27,118 @@ Subgraph = GcsTrajectoryOptimization.Subgraph
 
 class Planner:
 
-    gcs: Optional[GcsTrajectoryOptimization] = None
-
     def __init__(self, sim_env: SimEnvironment):
         self.logger = logging.getLogger(__name__)
 
         self.sim_env = sim_env
+
+        iris_regions_file = str(resources.files("anypick_dk") / "iris_regions" / "shelf_regions.yaml")
+        iris_regions = LoadIrisRegionsYamlFile(iris_regions_file)
+        gcs = GcsTrajectoryOptimization(IIWA_LEN + WSG_LEN)
+        nodes = {
+            "start": gcs.AddRegions(
+                [iris_regions["start_region"]], order=1, name="start"
+            ),
+            "home": gcs.AddRegions(
+                [iris_regions["home_region"]], order=1, name="home"
+            ),
+            "transition": gcs.AddRegions(
+                [iris_regions["transition_region"]], order=1, name="transition"
+            ),
+            "top_shelf": gcs.AddRegions(
+                [iris_regions["top_shelf_region"]], order=1, name="top_shelf"
+            ),
+            "top_shelf_approach": gcs.AddRegions(
+                [iris_regions["top_shelf_approach_region"]], order=1, name="top_shelf_approach"
+            ),
+            "mid_shelf": gcs.AddRegions(
+                [iris_regions["mid_shelf_region"]], order=1, name="mid_shelf"
+            ),
+            "mid_shelf_approach": gcs.AddRegions(
+                [iris_regions["mid_shelf_approach_region"]], order=1, name="mid_shelf_approach"
+            ),
+            "bot_shelf": gcs.AddRegions(
+                [iris_regions["bot_shelf_region"]], order=1, name="bot_shelf_region"
+            ),
+            "bot_shelf_approach": gcs.AddRegions(
+                [iris_regions["bot_shelf_approach_region"]], order=1, name="bot_shelf_approach"
+            ),
+            "object": gcs.AddRegions(
+                [iris_regions["object_region"]], order=1, name="object"
+            ),
+            "top_shelf_place": gcs.AddRegions(
+                [Point(np.concat([q_TopShelfPlace, np.zeros(WSG_LEN)]))], order=0, name="top_shelf_place"
+            ),
+            "mid_shelf_place": gcs.AddRegions(
+                [Point(np.concat([q_MidShelfPlace, np.zeros(WSG_LEN)]))], order=0, name="mid_shelf_place"
+            ),
+            "bot_shelf_place": gcs.AddRegions(
+                [Point(np.concat([q_BotShelfPlace, np.zeros(WSG_LEN)]))], order=0, name="bot_shelf_place"
+            ),
+            "top_shelf_pre": gcs.AddRegions(
+                [Point(np.concat([q_TopShelfPre, np.zeros(WSG_LEN)]))], order=0, name="top_shelf_pre"
+            ),
+            "mid_shelf_pre": gcs.AddRegions(
+                [Point(np.concat([q_MidShelfPre, np.zeros(WSG_LEN)]))], order=0, name="mid_shelf_pre"
+            ),
+            "bot_shelf_pre": gcs.AddRegions(
+                [Point(np.concat([q_BotShelfPre, np.zeros(WSG_LEN)]))], order=0, name="bot_shelf_pre"
+            ),
+        }
+
+        gcs.AddEdges(nodes["start"], nodes["home"])
+
+        gcs.AddEdges(nodes["home"], nodes["object"])
+        gcs.AddEdges(nodes["object"], nodes["home"])
+
+        gcs.AddEdges(nodes["home"], nodes["top_shelf_approach"])
+        gcs.AddEdges(nodes["top_shelf_approach"], nodes["home"])
+
+        gcs.AddEdges(nodes["home"], nodes["mid_shelf_approach"])
+        gcs.AddEdges(nodes["mid_shelf_approach"], nodes["home"])
+
+        gcs.AddEdges(nodes["home"], nodes["transition"])
+        gcs.AddEdges(nodes["transition"], nodes["home"])
+
+        gcs.AddEdges(nodes["transition"], nodes["bot_shelf_approach"])
+        gcs.AddEdges(nodes["bot_shelf_approach"], nodes["transition"])
+
+        gcs.AddEdges(nodes["top_shelf_approach"], nodes["top_shelf"])
+        gcs.AddEdges(nodes["top_shelf"], nodes["top_shelf_approach"])
+
+        gcs.AddEdges(nodes["mid_shelf_approach"], nodes["mid_shelf"])
+        gcs.AddEdges(nodes["mid_shelf"], nodes["mid_shelf_approach"])
+
+        gcs.AddEdges(nodes["bot_shelf_approach"], nodes["bot_shelf"])
+        gcs.AddEdges(nodes["bot_shelf"], nodes["bot_shelf_approach"])
+
+        gcs.AddEdges(nodes["top_shelf_approach"], nodes["top_shelf_pre"])
+        gcs.AddEdges(nodes["top_shelf_pre"], nodes["top_shelf_approach"])
+
+        gcs.AddEdges(nodes["mid_shelf_approach"], nodes["mid_shelf_pre"])
+        gcs.AddEdges(nodes["mid_shelf_pre"], nodes["mid_shelf_approach"])
+
+        gcs.AddEdges(nodes["bot_shelf_approach"], nodes["bot_shelf_pre"])
+        gcs.AddEdges(nodes["bot_shelf_pre"], nodes["bot_shelf_approach"])
+
+        gcs.AddEdges(nodes["top_shelf"], nodes["top_shelf_place"])
+        gcs.AddEdges(nodes["top_shelf_place"], nodes["top_shelf"])
+
+        gcs.AddEdges(nodes["mid_shelf"], nodes["mid_shelf_place"])
+        gcs.AddEdges(nodes["mid_shelf_place"], nodes["mid_shelf"])
+
+        gcs.AddEdges(nodes["bot_shelf"], nodes["bot_shelf_place"])
+        gcs.AddEdges(nodes["bot_shelf_place"], nodes["bot_shelf"])
+
+        gcs.AddTimeCost()
+        lb = self.sim_env.plant.GetVelocityLowerLimits()[:IIWA_LEN + WSG_LEN] / 8
+        lb[~np.isfinite(lb)] = -WSG_VEL_BOUND
+        ub = self.sim_env.plant.GetVelocityUpperLimits()[:IIWA_LEN + WSG_LEN] / 8
+        ub[~np.isfinite(ub)] = WSG_VEL_BOUND
+        gcs.AddVelocityBounds(lb, ub)
+
+        self.gcs = gcs
+        self.nodes = nodes
 
     def solve_fk(self) -> RigidTransform:
         X_WE = self.sim_env.plant.CalcRelativeTransform(
@@ -85,9 +196,6 @@ class Planner:
 
         self.logger.info("IK success")
         return result.GetSolution(q_vars)
-
-    def set_base_gcs(self, gcs: GcsTrajectoryOptimization) -> None:
-        self.gcs = gcs
 
     def create_iris_region(self, q_seed: np.ndarray, iris_cspace_margin: float = 0.02) -> HPolyhedron:
         # Save initial plant position
