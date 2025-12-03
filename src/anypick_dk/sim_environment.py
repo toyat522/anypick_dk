@@ -7,6 +7,7 @@ from anypick_dk.utils import reshape_trajectory
 from manipulation.meshcat_utils import PublishPositionTrajectory
 from manipulation.station import AddPointClouds, LoadScenario, MakeHardwareStation
 from pydrake.all import (
+    CameraInfo,
     CompositeTrajectory,
     DiagramBuilder,
     HPolyhedron,
@@ -16,6 +17,7 @@ from pydrake.all import (
     MultibodyPlant,
     Parser,
     RevoluteJoint,
+    RigidTransform,
     Simulator,
     Solve,
     StartMeshcat,
@@ -79,16 +81,16 @@ class SimEnvironment:
         self.wsg = self.plant.GetModelInstanceByName("wsg")
         self.ee_frame = self.plant.GetFrameByName("body")
         self.visualizer = self.station.GetSubsystemByName("meshcat_visualizer(illustration)")
-
-        to_point_cloud = AddPointClouds(
-            scenario=self.scenario, station=self.station, builder=builder, meshcat=self.meshcat
-        )
-        builder.ExportOutput(
-            to_point_cloud["camera0"].get_output_port(), "camera0_point_cloud"
-        )   
-        builder.ExportOutput(
-            to_point_cloud["camera1"].get_output_port(), "camera1_point_cloud"
-        )   
+#
+#        to_point_cloud = AddPointClouds(
+#            scenario=self.scenario, station=self.station, builder=builder, meshcat=self.meshcat
+#        )
+#        builder.ExportOutput(
+#            to_point_cloud["camera0"].get_output_port(), "camera0_point_cloud"
+#        )
+#        builder.ExportOutput(
+#            to_point_cloud["camera1"].get_output_port(), "camera1_point_cloud"
+#        )
 
     def _add_iiwa(self, plant: MultibodyPlant) -> ModelInstanceIndex:
         parser = Parser(plant)
@@ -104,7 +106,7 @@ class SimEnvironment:
                 joint.set_default_angle(q0[index])
                 index += 1
         return iiwa
-
+    
     def get_iiwa_position(self) -> tuple:
         return self.plant.GetPositions(self.plant_context, self.iiwa)
 
@@ -116,6 +118,26 @@ class SimEnvironment:
 
     def set_wsg_position(self, setpoint: float) -> None:
         self.plant.SetPositions(self.plant_context, self.wsg, [-abs(setpoint) / 2, abs(setpoint) / 2])
+    
+    def get_camera_bgr(self, idx: int) -> np.ndarray:
+        img = self.station.GetOutputPort(f"camera{idx}.rgb_image").Eval(self.station_context)
+        img = np.array(img.data, copy=False).reshape(img.height(), img.width(), -1)[:,:,:-1]
+        return img[:,:,::-1]
+
+    def get_camera_depth(self, idx: int) -> np.ndarray:
+        img = self.station.GetOutputPort(f"camera{idx}.depth_image").Eval(self.station_context)
+        depth_img = np.array(img.data, copy=False).reshape(img.height(), img.width(), -1)[:,:,0]
+        return np.ma.masked_invalid(depth_img)
+
+    def get_camera_pose(self, idx: int) -> RigidTransform:
+        camera = self.station.GetSubsystemByName(f"rgbd_sensor_camera{idx}")
+        camera_context = camera.GetMyContextFromRoot(self.diagram_context)
+        return camera.body_pose_in_world_output_port().Eval(camera_context)
+
+    def get_camera_intrinsics(self, idx: int) -> CameraInfo:
+        camera = self.station.GetSubsystemByName(f"rgbd_sensor_camera{idx}")
+        camera_context = camera.GetMyContextFromRoot(self.diagram_context)
+        return camera.GetDepthRenderCamera(camera_context).core().intrinsics()
 
     def publish_diagram(self) -> None:
         self.diagram.ForcedPublish(self.diagram_context)

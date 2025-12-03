@@ -1,7 +1,7 @@
 import numpy as np
 
 from anypick_dk.constants import PREGRASP_Z
-from pydrake.all import BezierCurve, CompositeTrajectory, PiecewisePolynomial, RigidTransform
+from pydrake.all import BezierCurve, CompositeTrajectory, PiecewisePolynomial, PointCloud, RigidTransform
 from typing import Optional
 
 
@@ -107,3 +107,37 @@ def get_pregrasp_pose(pose: RigidTransform) -> RigidTransform:
         pose.rotation(),
         pose.translation() + np.array([0.0, 0.0, PREGRASP_Z])
     )
+
+def get_pc_from_depth(depth_img, intrinsics) -> PointCloud:
+    fx = intrinsics.focal_x()
+    fy = intrinsics.focal_y()
+    cx = intrinsics.center_x()
+    cy = intrinsics.center_y()
+
+    H, W = depth_img.shape
+    u, v = np.meshgrid(np.arange(W), np.arange(H))
+
+    valid = depth_img > 0
+
+    x = (u - cx) * depth_img / fx
+    y = (v - cy) * depth_img / fy
+
+    pc_cam = np.stack([x[valid], y[valid], depth_img[valid]], axis=1)
+
+    pc = PointCloud(pc_cam.shape[0])
+    pc.mutable_xyzs()[:] = pc_cam.T
+    return pc
+
+def transform_pointcloud(pc_in_cam: PointCloud, X_WC: RigidTransform) -> PointCloud:
+    # Extract Nx3 array of XYZ points
+    XYZ_cam = pc_in_cam.xyzs().T   # (N, 3)
+
+    # Apply transform: p_W = R*p_C + t
+    R = X_WC.rotation().matrix()
+    t = X_WC.translation().reshape(1, 3)
+    XYZ_world = (XYZ_cam @ R.T) + t
+
+    # Create a new Drake PointCloud
+    pc_world = PointCloud(XYZ_world.shape[0])
+    pc_world.mutable_xyzs()[:] = XYZ_world.T
+    return pc_world

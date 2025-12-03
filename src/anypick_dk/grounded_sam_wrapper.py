@@ -61,9 +61,9 @@ class GroundedSamWrapper:
     def detect_and_segment(self,
                            image_bgr: np.ndarray,
                            prompt: list,
-                           box_threshold: float = 0.25,
-                           text_threshold: float = 0.25,
-                           nms_threshold: float = 0.5):
+                           box_threshold = 0.5,
+                           text_threshold = 0.25,
+                           nms_threshold = 0.5):
         # GroundingDINO detections
         self.detections = self.dino.predict_with_classes(
             image=image_bgr,
@@ -78,20 +78,28 @@ class GroundedSamWrapper:
         self.detections.xyxy = self.detections.xyxy[nms_idx]
         self.detections.confidence = self.detections.confidence[nms_idx]
 
+        if len(self.detections.xyxy) == 0:
+            return None, None
+
+        best_idx = np.argmax(self.detections.confidence)
+        best_box = self.detections.xyxy[best_idx]
+        best_conf = self.detections.confidence[best_idx]
+
         # SAM segmentation per box
         rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
         self.sam_predictor.set_image(rgb)
-        result_masks = []
-        for bbox in self.detections.xyxy:
-            masks, scores_sam, logits = self.sam_predictor.predict(
-                box=np.array(bbox),
-                multimask_output=True
-            )
-            idx = np.argmax(scores_sam)
-            result_masks.append(masks[idx])
 
-        self.detections.mask = np.array(result_masks)
-        return self.detections.xyxy, self.detections.mask
+        masks, scores_sam, _ = self.sam_predictor.predict(
+            box=np.array(best_box),
+            multimask_output=True
+        )
+        mask = masks[np.argmax(scores_sam)]
+
+        self.detections.xyxy = np.array([best_box])
+        self.detections.confidence = np.array([best_conf])
+        self.detections.mask = np.array([mask])
+
+        return self.detections.xyxy[0], self.detections.mask[0]
 
     def annotate_and_save(self, image_bgr: np.ndarray, output_path: str = "grounded_sam_annotated.jpg"):
 
