@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 def main():
-    scenario_file = str(resources.files("anypick_dk") / "scenarios" / "shelf_no_objects.yaml")
+    scenario_file = str(resources.files("anypick_dk") / "scenarios" / "shelf_with_objects.yaml")
     sim_env = SimEnvironment(scenario_file)
     planner = Planner(sim_env)
 

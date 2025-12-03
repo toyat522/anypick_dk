@@ -2,6 +2,8 @@
 
 ## Installation
 
+### AnyPick DraKe Package Installation
+
 ```
 cd anypick_dk
 pip install -e .
@@ -26,4 +28,10 @@ Install Grounding DINO:
 ```
 cd GroundingDINO
 pip install -e .
+```
+
+### Other Dependencies
+
+```
+pip install py-trees
 ```
