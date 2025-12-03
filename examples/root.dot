@@ -1,0 +1,29 @@
+digraph pastafarianism {
+ordering=out;
+graph [fontname="times-roman"];
+node [fontname="times-roman"];
+edge [fontname="times-roman"];
+root [label="Ⓜ root", shape=box, style=filled, fillcolor=orange, fontsize=9, fontcolor=black];
+detect_all_objects [label="detect_all_objects", shape=octagon, style=filled, fillcolor=cyan, fontsize=9, fontcolor=black];
+root -> detect_all_objects;
+is_objects_detected [label="is_objects_detected", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+detect_all_objects -> is_objects_detected;
+loop_detect [label="loop_detect", shape=ellipse, style=filled, fillcolor=ghostwhite, fontsize=9, fontcolor=black];
+detect_all_objects -> loop_detect;
+retry_on_detect_fail [label="retry_on_detect_fail", shape=ellipse, style=filled, fillcolor=ghostwhite, fontsize=9, fontcolor=black];
+loop_detect -> retry_on_detect_fail;
+detect_one_object [label="Ⓜ detect_one_object", shape=box, style=filled, fillcolor=orange, fontsize=9, fontcolor=black];
+retry_on_detect_fail -> detect_one_object;
+ask_for_prompt [label="ask_for_prompt", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+detect_one_object -> ask_for_prompt;
+grounding_dino [label="grounding_dino", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+detect_one_object -> grounding_dino;
+confirm_detection [label="confirm_detection", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+detect_one_object -> confirm_detection;
+plan_and_execute_trajectory [label="plan_and_execute_trajectory", shape=box, style=filled, fillcolor=orange, fontsize=9, fontcolor=black];
+root -> plan_and_execute_trajectory;
+plan_trajectory [label="plan_trajectory", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+plan_and_execute_trajectory -> plan_trajectory;
+execute_trajectory [label="execute_trajectory", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+plan_and_execute_trajectory -> execute_trajectory;
+}
