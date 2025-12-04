@@ -14,12 +14,10 @@ retry_on_detect_fail [label="retry_on_detect_fail", shape=ellipse, style=filled,
 loop_detect -> retry_on_detect_fail;
 detect_one_object [label="Ⓜ detect_one_object", shape=box, style=filled, fillcolor=orange, fontsize=9, fontcolor=black];
 retry_on_detect_fail -> detect_one_object;
-ask_for_prompt [label="ask_for_prompt", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
-detect_one_object -> ask_for_prompt;
-grounded_sam [label="grounded_sam", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
-detect_one_object -> grounded_sam;
-confirm_detection [label="confirm_detection", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
-detect_one_object -> confirm_detection;
+grounded_sam_detect [label="grounded_sam_detect", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+detect_one_object -> grounded_sam_detect;
+get_grasp_pose [label="get_grasp_pose", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+detect_one_object -> get_grasp_pose;
 plan_and_execute_trajectory [label="plan_and_execute_trajectory", shape=box, style=filled, fillcolor=orange, fontsize=9, fontcolor=black];
 root -> plan_and_execute_trajectory;
 plan_trajectory [label="plan_trajectory", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];

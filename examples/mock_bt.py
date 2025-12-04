@@ -3,7 +3,8 @@ import py_trees
 
 
 class AskForPrompt(py_trees.behaviour.Behaviour):
-    def __init__(self, name="ask_for_prompt"):
+    def __init__(self):
+        name = "ask_for_prompt"
         super().__init__(name)
         self.blackboard = py_trees.blackboard.Client(name=name)
         self.blackboard.register_key("current_prompt", access=py_trees.common.Access.WRITE)
@@ -15,7 +16,8 @@ class AskForPrompt(py_trees.behaviour.Behaviour):
 
 
 class MockGroundedSAM(py_trees.behaviour.Behaviour):
-    def __init__(self, name="grounded_sam"):
+    def __init__(self):
+        name = "grounded_sam"
         super().__init__(name)
         self.blackboard = py_trees.blackboard.Client(name=name)
         self.blackboard.register_key("current_prompt", access=py_trees.common.Access.READ)
@@ -35,7 +37,8 @@ class MockGroundedSAM(py_trees.behaviour.Behaviour):
 
 
 class AskUserConfirmation(py_trees.behaviour.Behaviour):
-    def __init__(self, name="confirm_detection"):
+    def __init__(self):
+        name = "confirm_detection"
         super().__init__(name)
         self.blackboard = py_trees.blackboard.Client(name=name)
         self.blackboard.register_key("completed_detections", access=py_trees.common.Access.WRITE)
@@ -80,7 +83,7 @@ class EndBehavior(py_trees.behaviour.Behaviour):
         super().__init__("end_behavior")
     
     def update(self):
-        input("\nPress any key to end tree")
+        input("\nPress the enter key to end tree: ")
         return py_trees.common.Status.SUCCESS
 
 
@@ -139,7 +142,7 @@ def create_tree():
 
 def main():
     tree = create_tree()
-    tree.setup(timeout=15)
+    tree.setup()
 
     py_trees.display.render_dot_tree(tree.root)
 

@@ -44,6 +44,7 @@ class SimEnvironment:
         self.diagram_context = self.diagram.CreateDefaultContext()
         self.station_context = self.diagram.GetSubsystemContext(self.station, self.diagram_context)
         self.plant_context = self.plant.GetMyContextFromRoot(self.diagram_context)
+        self.publish_diagram()
 
     def build_diagram_with_controller(self, iiwa_traj: CompositeTrajectory,
                                       wsg_traj: CompositeTrajectory) -> None:

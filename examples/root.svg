@@ -28,13 +28,13 @@
 <polygon fill="black" stroke="black" points="210.35,-328.24 200.59,-324.1 205.64,-333.42 210.35,-328.24"/>
 </g>
 <!-- plan_and_execute_trajectory -->
-<g id="node10" class="node">
+<g id="node9" class="node">
 <title>plan_and_execute_trajectory</title>
 <polygon fill="orange" stroke="black" points="451.28,-324 302.28,-324 302.28,-288 451.28,-288 451.28,-324"/>
 <text text-anchor="middle" x="376.78" y="-303.8" font-family="Times,serif" font-size="9.00">plan_and_execute_trajectory</text>
 </g>
 <!-- root&#45;&gt;plan_and_execute_trajectory -->
-<g id="edge9" class="edge">
+<g id="edge8" class="edge">
 <title>root&#45;&gt;plan_and_execute_trajectory</title>
 <path fill="none" stroke="black" d="M285.85,-360.94C301.61,-351.59 321.72,-339.66 339.02,-329.4"/>
 <polygon fill="black" stroke="black" points="340.95,-332.32 347.77,-324.21 337.38,-326.3 340.95,-332.32"/>
@@ -87,74 +87,62 @@
 <path fill="none" stroke="black" d="M181.78,-143.7C181.78,-135.98 181.78,-126.71 181.78,-118.11"/>
 <polygon fill="black" stroke="black" points="185.28,-118.1 181.78,-108.1 178.28,-118.1 185.28,-118.1"/>
 </g>
-<!-- ask_for_prompt -->
+<!-- grounded_sam_detect -->
 <g id="node7" class="node">
-<title>ask_for_prompt</title>
-<ellipse fill="gray" stroke="black" cx="64.78" cy="-18" rx="50.46" ry="18"/>
-<text text-anchor="middle" x="64.78" y="-15.8" font-family="Times,serif" font-size="9.00">ask_for_prompt</text>
+<title>grounded_sam_detect</title>
+<ellipse fill="gray" stroke="black" cx="113.78" cy="-18" rx="68.25" ry="18"/>
+<text text-anchor="middle" x="113.78" y="-15.8" font-family="Times,serif" font-size="9.00">grounded_sam_detect</text>
 </g>
-<!-- detect_one_object&#45;&gt;ask_for_prompt -->
+<!-- detect_one_object&#45;&gt;grounded_sam_detect -->
 <g id="edge6" class="edge">
-<title>detect_one_object&#45;&gt;ask_for_prompt</title>
-<path fill="none" stroke="black" d="M153.16,-71.88C136.56,-61.95 115.59,-49.4 98.24,-39.02"/>
-<polygon fill="black" stroke="black" points="99.91,-35.94 89.54,-33.81 96.32,-41.95 99.91,-35.94"/>
+<title>detect_one_object&#45;&gt;grounded_sam_detect</title>
+<path fill="none" stroke="black" d="M164.97,-71.7C156.53,-63.01 146.17,-52.34 136.98,-42.89"/>
+<polygon fill="black" stroke="black" points="139.4,-40.36 129.92,-35.62 134.38,-45.23 139.4,-40.36"/>
 </g>
-<!-- grounded_sam -->
+<!-- get_grasp_pose -->
 <g id="node8" class="node">
-<title>grounded_sam</title>
-<ellipse fill="gray" stroke="black" cx="181.78" cy="-18" rx="48.49" ry="18"/>
-<text text-anchor="middle" x="181.78" y="-15.8" font-family="Times,serif" font-size="9.00">grounded_sam</text>
+<title>get_grasp_pose</title>
+<ellipse fill="gray" stroke="black" cx="250.78" cy="-18" rx="50.61" ry="18"/>
+<text text-anchor="middle" x="250.78" y="-15.8" font-family="Times,serif" font-size="9.00">get_grasp_pose</text>
 </g>
-<!-- detect_one_object&#45;&gt;grounded_sam -->
+<!-- detect_one_object&#45;&gt;get_grasp_pose -->
 <g id="edge7" class="edge">
-<title>detect_one_object&#45;&gt;grounded_sam</title>
-<path fill="none" stroke="black" d="M181.78,-71.7C181.78,-63.98 181.78,-54.71 181.78,-46.11"/>
-<polygon fill="black" stroke="black" points="185.28,-46.1 181.78,-36.1 178.28,-46.1 185.28,-46.1"/>
-</g>
-<!-- confirm_detection -->
-<g id="node9" class="node">
-<title>confirm_detection</title>
-<ellipse fill="gray" stroke="black" cx="305.78" cy="-18" rx="57.97" ry="18"/>
-<text text-anchor="middle" x="305.78" y="-15.8" font-family="Times,serif" font-size="9.00">confirm_detection</text>
-</g>
-<!-- detect_one_object&#45;&gt;confirm_detection -->
-<g id="edge8" class="edge">
-<title>detect_one_object&#45;&gt;confirm_detection</title>
-<path fill="none" stroke="black" d="M212.11,-71.88C229.65,-61.97 251.82,-49.46 270.18,-39.09"/>
-<polygon fill="black" stroke="black" points="272.14,-42.01 279.12,-34.05 268.7,-35.91 272.14,-42.01"/>
+<title>detect_one_object&#45;&gt;get_grasp_pose</title>
+<path fill="none" stroke="black" d="M198.83,-71.7C207.52,-62.88 218.22,-52.03 227.64,-42.47"/>
+<polygon fill="black" stroke="black" points="230.34,-44.72 234.86,-35.14 225.35,-39.81 230.34,-44.72"/>
 </g>
 <!-- plan_trajectory -->
-<g id="node11" class="node">
+<g id="node10" class="node">
 <title>plan_trajectory</title>
 <ellipse fill="gray" stroke="black" cx="290.78" cy="-234" rx="50.46" ry="18"/>
 <text text-anchor="middle" x="290.78" y="-231.8" font-family="Times,serif" font-size="9.00">plan_trajectory</text>
 </g>
 <!-- plan_and_execute_trajectory&#45;&gt;plan_trajectory -->
-<g id="edge10" class="edge">
+<g id="edge9" class="edge">
 <title>plan_and_execute_trajectory&#45;&gt;plan_trajectory</title>
 <path fill="none" stroke="black" d="M355.52,-287.7C344.2,-278.49 330.16,-267.06 318.05,-257.2"/>
 <polygon fill="black" stroke="black" points="319.99,-254.27 310.03,-250.67 315.58,-259.7 319.99,-254.27"/>
 </g>
 <!-- execute_trajectory -->
-<g id="node12" class="node">
+<g id="node11" class="node">
 <title>execute_trajectory</title>
 <ellipse fill="gray" stroke="black" cx="418.78" cy="-234" rx="59.43" ry="18"/>
 <text text-anchor="middle" x="418.78" y="-231.8" font-family="Times,serif" font-size="9.00">execute_trajectory</text>
 </g>
 <!-- plan_and_execute_trajectory&#45;&gt;execute_trajectory -->
-<g id="edge11" class="edge">
+<g id="edge10" class="edge">
 <title>plan_and_execute_trajectory&#45;&gt;execute_trajectory</title>
 <path fill="none" stroke="black" d="M387.16,-287.7C392.04,-279.56 397.96,-269.69 403.36,-260.7"/>
 <polygon fill="black" stroke="black" points="406.37,-262.48 408.51,-252.1 400.37,-258.88 406.37,-262.48"/>
 </g>
 <!-- end_behavior -->
-<g id="node13" class="node">
+<g id="node12" class="node">
 <title>end_behavior</title>
 <ellipse fill="gray" stroke="black" cx="541.78" cy="-234" rx="45.72" ry="18"/>
 <text text-anchor="middle" x="541.78" y="-231.8" font-family="Times,serif" font-size="9.00">end_behavior</text>
 </g>
 <!-- plan_and_execute_trajectory&#45;&gt;end_behavior -->
-<g id="edge12" class="edge">
+<g id="edge11" class="edge">
 <title>plan_and_execute_trajectory&#45;&gt;end_behavior</title>
 <path fill="none" stroke="black" d="M417.14,-287.88C443.11,-276.86 476.7,-262.61 502.46,-251.68"/>
 <polygon fill="black" stroke="black" points="504.08,-254.79 511.92,-247.67 501.35,-248.35 504.08,-254.79"/>

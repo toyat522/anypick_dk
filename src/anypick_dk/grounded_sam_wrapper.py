@@ -23,6 +23,7 @@ from typing import Optional
 class GroundedSamWrapper:
 
     detections: Optional[sv.Detections] = None
+    image_bgr: Optional[np.ndarray] = None
 
     def __init__(self,
                  dino_config_relpath: str = "GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py",
@@ -52,7 +53,6 @@ class GroundedSamWrapper:
             model_checkpoint_path = checkpoint_path,
             device = self.device
         )
-        self.detections = None
 
         sam = sam_model_registry[sam_encoder](checkpoint=sam_checkpoint)
         sam.to(device=self.device)
@@ -64,6 +64,8 @@ class GroundedSamWrapper:
                            box_threshold = 0.5,
                            text_threshold = 0.25,
                            nms_threshold = 0.5):
+        self.image_bgr = image_bgr
+
         # GroundingDINO detections
         self.detections = self.dino.predict_with_classes(
             image=image_bgr,
@@ -101,13 +103,9 @@ class GroundedSamWrapper:
 
         return self.detections.xyxy[0], self.detections.mask[0]
 
-    def annotate_and_save(self, image_bgr: np.ndarray, output_path: str = "grounded_sam_annotated.jpg"):
-
+    def annotate(self) -> np.ndarray:
         mask_annotator = sv.MaskAnnotator()
         box_annotator = sv.BoxAnnotator()
-
-        annotated = mask_annotator.annotate(scene=image_bgr.copy(), detections=self.detections)
+        annotated = mask_annotator.annotate(scene=self.image_bgr.copy(), detections=self.detections)
         annotated = box_annotator.annotate(scene=annotated, detections=self.detections)
-
-        cv2.imwrite(output_path, annotated)
-        self.logger.info(f"Saved annotated image to {output_path}")
+        return annotated

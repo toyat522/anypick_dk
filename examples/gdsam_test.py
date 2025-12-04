@@ -1,18 +1,15 @@
 import cv2
-import logging
 
 from anypick_dk.grounded_sam_wrapper import GroundedSamWrapper
-
-logging.basicConfig(level=logging.INFO)
 
 
 def main():
     gdsam = GroundedSamWrapper()
     img = cv2.imread("../media/demo/demo4.jpg") 
     prompt = ["the brown dog"]
-    bboxes, masks = gdsam.detect_and_segment(img, prompt)
-
-    gdsam.annotate_and_save(img, output_path="grounded_sam_test.jpg")
+    gdsam.detect_and_segment(img, prompt, box_threshold=0.2)
+    annotated = gdsam.annotate()
+    cv2.imwrite("../media/demo/gdsam_test.jpg", annotated)
 
 
 if __name__ == "__main__":
