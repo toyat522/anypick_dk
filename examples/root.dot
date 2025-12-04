@@ -16,8 +16,8 @@ detect_one_object [label="Ⓜ detect_one_object", shape=box, style=filled, fillc
 retry_on_detect_fail -> detect_one_object;
 ask_for_prompt [label="ask_for_prompt", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
 detect_one_object -> ask_for_prompt;
-grounding_dino [label="grounding_dino", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
-detect_one_object -> grounding_dino;
+grounded_sam [label="grounded_sam", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+detect_one_object -> grounded_sam;
 confirm_detection [label="confirm_detection", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
 detect_one_object -> confirm_detection;
 plan_and_execute_trajectory [label="plan_and_execute_trajectory", shape=box, style=filled, fillcolor=orange, fontsize=9, fontcolor=black];
@@ -26,4 +26,6 @@ plan_trajectory [label="plan_trajectory", shape=ellipse, style=filled, fillcolor
 plan_and_execute_trajectory -> plan_trajectory;
 execute_trajectory [label="execute_trajectory", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
 plan_and_execute_trajectory -> execute_trajectory;
+end_behavior [label="end_behavior", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
+plan_and_execute_trajectory -> end_behavior;
 }

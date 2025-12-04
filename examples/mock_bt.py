@@ -1,5 +1,5 @@
-import py_trees
 import operator
+import py_trees
 
 
 class AskForPrompt(py_trees.behaviour.Behaviour):
@@ -14,8 +14,8 @@ class AskForPrompt(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.SUCCESS
 
 
-class MockGroundingDINO(py_trees.behaviour.Behaviour):
-    def __init__(self, name="grounding_dino"):
+class MockGroundedSAM(py_trees.behaviour.Behaviour):
+    def __init__(self, name="grounded_sam"):
         super().__init__(name)
         self.blackboard = py_trees.blackboard.Client(name=name)
         self.blackboard.register_key("current_prompt", access=py_trees.common.Access.READ)
@@ -75,6 +75,15 @@ class ExecuteTrajectory(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.SUCCESS
 
 
+class EndBehavior(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        super().__init__("end_behavior")
+    
+    def update(self):
+        input("\nPress any key to end tree")
+        return py_trees.common.Status.SUCCESS
+
+
 def create_tree():
     bb = py_trees.blackboard.Client(name="initializer")
     bb.register_key("current_prompt", access=py_trees.common.Access.WRITE)
@@ -97,7 +106,7 @@ def create_tree():
     detect_sequence = py_trees.composites.Sequence(name="detect_one_object", memory=True)
     detect_sequence.add_children([
         AskForPrompt(),
-        MockGroundingDINO(),
+        MockGroundedSAM(),
         AskUserConfirmation(),
     ])
 
@@ -119,6 +128,7 @@ def create_tree():
     finish_sequence.add_children([
         PlanTrajectory(),
         ExecuteTrajectory(),
+        EndBehavior()
     ])
 
     root = py_trees.composites.Sequence(name="root", memory=True)
@@ -137,22 +147,18 @@ def main():
     print("Goal: Detect 3 objects, then plan.")
 
     while True:
-        try:
-            tree.tick()
+        tree.tick()
 
-            print(py_trees.display.unicode_tree(
-                root=tree.root, 
-                show_status=True
-            ))
-            
-            if tree.root.status == py_trees.common.Status.SUCCESS:
-                print("\nTree finished successfully.")
-                break
-            if tree.root.status == py_trees.common.Status.FAILURE:
-                print("\nTree failed.")
-                break
-                
-        except KeyboardInterrupt:
+        print(py_trees.display.unicode_tree(
+            root=tree.root, 
+            show_status=True
+        ))
+        
+        if tree.root.status == py_trees.common.Status.SUCCESS:
+            print("\nTree finished successfully.")
+            break
+        if tree.root.status == py_trees.common.Status.FAILURE:
+            print("\nTree failed.")
             break
 
 
