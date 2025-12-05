@@ -25,7 +25,8 @@ def main():
             logger.info("Tree successfully finished!")
             break
         elif result == py_trees.common.Status.FAILURE:
-            logger.warning("Tree failed!")
+            logger.error("Tree failed!")
+            break
 
 
 if __name__ == "__main__":
