@@ -3,8 +3,8 @@ import operator
 import py_trees
 
 from anypick_dk.behaviors import (
-    ExecuteTrajectory, GetGraspPose, GroundedSamDetect,
-    PlanTrajectory, EndBehavior
+    GetGraspPose, GetGTGraspPose, GroundedSamDetect,
+    PlanAndExecuteTrajectory, EndBehavior
 )
 from anypick_dk.constants import MAX_FAILURES, NUM_DETECTIONS
 from anypick_dk.grounded_sam_wrapper import GroundedSamWrapper
@@ -13,26 +13,24 @@ from anypick_dk.sim_environment import SimEnvironment
 
 
 class Orchestrator:
-    def __init__(self, scenario_file: str):
+    def __init__(self, scenario_file: str, gt_poses = None):
         self.logger = logging.getLogger(__name__)
 
         self.sim_env = SimEnvironment(scenario_file)
         self.planner = Planner(self.sim_env)
         self.gdsam = GroundedSamWrapper()
 
-        self.tree = self._create_tree()
+        self.tree = self._create_tree(gt_poses)
         self.tree.setup()
     
-    def _create_tree(self):
+    def _create_tree(self, gt_poses = None):
         bb = py_trees.blackboard.Client(name="initializer")
         bb.register_key("num_detections", access=py_trees.common.Access.WRITE)
-        bb.register_key("depth_images", access=py_trees.common.Access.WRITE)
-        bb.register_key("detected_object", access=py_trees.common.Access.WRITE)
         bb.register_key("masks", access=py_trees.common.Access.WRITE)
+        bb.register_key("poses", access=py_trees.common.Access.WRITE)
         bb.num_detections = 0
-        bb.depth_images = []
-        bb.detected_object = ""
         bb.masks = []
+        bb.poses = []
 
         check_done = py_trees.behaviours.CheckBlackboardVariableValue(
             name="is_objects_detected",
@@ -46,7 +44,7 @@ class Orchestrator:
         detect_sequence = py_trees.composites.Sequence(name="detect_one_object", memory=True)
         detect_sequence.add_children([
             GroundedSamDetect(self.sim_env, self.gdsam),
-            GetGraspPose(self.sim_env)
+            GetGraspPose(self.sim_env) if gt_poses is None else GetGTGraspPose(self.sim_env, gt_poses)
         ])
 
         retry_on_detect_fail = py_trees.decorators.Retry(
@@ -65,8 +63,7 @@ class Orchestrator:
 
         finish_sequence = py_trees.composites.Sequence(name="plan_and_execute_trajectory", memory=False)
         finish_sequence.add_children([
-            PlanTrajectory(),
-            ExecuteTrajectory(),
+            PlanAndExecuteTrajectory(self.sim_env, self.planner),
             EndBehavior()
         ])
 

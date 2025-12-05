@@ -22,8 +22,6 @@ plan_and_execute_trajectory [label="plan_and_execute_trajectory", shape=box, sty
 root -> plan_and_execute_trajectory;
 plan_trajectory [label="plan_trajectory", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
 plan_and_execute_trajectory -> plan_trajectory;
-execute_trajectory [label="execute_trajectory", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
-plan_and_execute_trajectory -> execute_trajectory;
 end_behavior [label="end_behavior", shape=ellipse, style=filled, fillcolor=gray, fontsize=9, fontcolor=black];
 plan_and_execute_trajectory -> end_behavior;
 }

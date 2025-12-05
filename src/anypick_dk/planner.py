@@ -4,7 +4,7 @@ import importlib.resources as resources
 import logging
 import numpy as np
 from anypick_dk.constants import (
-    IIWA_LEN, p_EETip, q_BotShelfPlace, q_BotShelfPre, q_MidShelfPlace, q_MidShelfPre,
+    IIWA_LEN, p_EETip, q_BotShelfPlace, q_BotShelfPre, q_Init, q_MidShelfPlace, q_MidShelfPre,
     q_TopShelfPlace, q_TopShelfPre, WSG_LEN, WSG_VEL_BOUND
 )
 from anypick_dk.sim_environment import SimEnvironment
@@ -36,6 +36,9 @@ class Planner:
         iris_regions = LoadIrisRegionsYamlFile(iris_regions_file)
         gcs = GcsTrajectoryOptimization(IIWA_LEN + WSG_LEN)
         nodes = {
+            "start_point": gcs.AddRegions(
+                [Point(np.concat([q_Init, np.zeros(WSG_LEN)]))], order=0, name="start_point"
+            ),
             "start": gcs.AddRegions(
                 [iris_regions["start_region"]], order=1, name="start"
             ),
@@ -89,6 +92,7 @@ class Planner:
             ),
         }
 
+        gcs.AddEdges(nodes["start_point"], nodes["start"])
         gcs.AddEdges(nodes["start"], nodes["home"])
 
         gcs.AddEdges(nodes["home"], nodes["object"])
@@ -177,10 +181,10 @@ class Planner:
 
         result = Solve(prog)
         if not result.is_success():
-            self.logger.error("IK failed")
+            self.logger.error("IK failed!")
             return None
 
-        self.logger.info("IK success")
+        self.logger.info("IK success.")
         return result.GetSolution(q_vars)
 
     def solve_ik_pos(self, pos: List, q0: np.ndarray = np.zeros(IIWA_LEN),
@@ -199,10 +203,10 @@ class Planner:
 
         result = Solve(ik.prog())
         if not result.is_success():
-            self.logger.error("IK failed")
+            self.logger.error("IK failed!")
             return None
 
-        self.logger.info("IK success")
+        self.logger.info("IK success.")
         return result.GetSolution(q_vars)
 
     def create_iris_region(self, q_seed: np.ndarray, iris_cspace_margin: float = 0.02) -> HPolyhedron:
@@ -231,8 +235,8 @@ class Planner:
         traj, result = self.gcs.SolvePath(source, target, options)
 
         if not result.is_success():
-            self.logger.error("No feasible path found")
+            self.logger.error("No feasible path found!")
             return None
 
-        self.logger.info("GCS path successfully found")
+        self.logger.info("GCS path successfully found.")
         return traj
