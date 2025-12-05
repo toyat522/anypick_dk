@@ -24,15 +24,15 @@ X_WCan = RigidTransform(
     [0.40, 0.65, 0.05]
 )
 X_WGelatin = RigidTransform(
-    RollPitchYaw(np.deg2rad(np.array([-90, 0, 50]))),
+    RollPitchYaw(np.deg2rad(np.array([-90, 0, 230]))),
     [0.05, 0.75, 0.045]
 )
 X_WMustard = RigidTransform(
-    RollPitchYaw(np.deg2rad(np.array([-90, 0, 75]))),
+    RollPitchYaw(np.deg2rad(np.array([-90, 0, 235]))),
     [-0.08, 0.56, 0.14]
 )
 X_WSugar = RigidTransform(
-    RollPitchYaw(np.deg2rad(np.array([-87, 0, 115]))),
+    RollPitchYaw(np.deg2rad(np.array([-87, 0, 295]))),
     [0.22, 0.65, 0.115]
 )
 

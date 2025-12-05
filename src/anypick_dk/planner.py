@@ -69,8 +69,11 @@ class Planner:
             "object": gcs.AddRegions(
                 [iris_regions["object_region"]], order=1, name="object"
             ),
-            "pick": gcs.AddRegions(
-                [iris_regions["pick_region"]], order=1, name="pick"
+            "pick0": gcs.AddRegions(
+                [iris_regions["pick_region_0"]], order=1, name="pick0"
+            ),
+            "pick1": gcs.AddRegions(
+                [iris_regions["pick_region_1"]], order=1, name="pick1"
             ),
             "top_shelf_place": gcs.AddRegions(
                 [Point(np.concat([q_TopShelfPlace, np.zeros(WSG_LEN)]))], order=0, name="top_shelf_place"
@@ -98,8 +101,12 @@ class Planner:
         gcs.AddEdges(nodes["home"], nodes["object"])
         gcs.AddEdges(nodes["object"], nodes["home"])
 
-        gcs.AddEdges(nodes["object"], nodes["pick"])
-        gcs.AddEdges(nodes["pick"], nodes["object"])
+        gcs.AddEdges(nodes["object"], nodes["pick0"])
+        gcs.AddEdges(nodes["pick0"], nodes["object"])
+        gcs.AddEdges(nodes["object"], nodes["pick1"])
+        gcs.AddEdges(nodes["pick1"], nodes["object"])
+        gcs.AddEdges(nodes["pick0"], nodes["pick1"])
+        gcs.AddEdges(nodes["pick1"], nodes["pick0"])
 
         gcs.AddEdges(nodes["home"], nodes["top_shelf_approach"])
         gcs.AddEdges(nodes["top_shelf_approach"], nodes["home"])

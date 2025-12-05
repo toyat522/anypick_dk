@@ -185,8 +185,10 @@ class PlanAndExecuteTrajectory(py_trees.behaviour.Behaviour):
             obj_node = self.planner.gcs.AddRegions(
                 [Point(np.concat([q_obj, np.zeros(WSG_LEN)]))], order=0, name=f"obj{i}"
             )
-            self.planner.gcs.AddEdges(obj_node, self.planner.nodes["pick"])
-            self.planner.gcs.AddEdges(self.planner.nodes["pick"], obj_node)
+            self.planner.gcs.AddEdges(obj_node, self.planner.nodes["pick0"])
+            self.planner.gcs.AddEdges(self.planner.nodes["pick0"], obj_node)
+            self.planner.gcs.AddEdges(obj_node, self.planner.nodes["pick1"])
+            self.planner.gcs.AddEdges(self.planner.nodes["pick1"], obj_node)
 
             iiwa_trajs.append(self.planner.solve_gcs(prev_end, obj_node))
             if iiwa_trajs[-1] is None:
