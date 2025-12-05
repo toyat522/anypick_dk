@@ -66,6 +66,9 @@ class Planner:
             "object": gcs.AddRegions(
                 [iris_regions["object_region"]], order=1, name="object"
             ),
+            "pick": gcs.AddRegions(
+                [iris_regions["pick_region"]], order=1, name="pick"
+            ),
             "top_shelf_place": gcs.AddRegions(
                 [Point(np.concat([q_TopShelfPlace, np.zeros(WSG_LEN)]))], order=0, name="top_shelf_place"
             ),
@@ -90,6 +93,9 @@ class Planner:
 
         gcs.AddEdges(nodes["home"], nodes["object"])
         gcs.AddEdges(nodes["object"], nodes["home"])
+
+        gcs.AddEdges(nodes["object"], nodes["pick"])
+        gcs.AddEdges(nodes["pick"], nodes["object"])
 
         gcs.AddEdges(nodes["home"], nodes["top_shelf_approach"])
         gcs.AddEdges(nodes["top_shelf_approach"], nodes["home"])
@@ -150,14 +156,16 @@ class Planner:
         return X_WE @ X_ETip
 
     def solve_ik(self, tf: RigidTransform, q0: np.ndarray = np.zeros(IIWA_LEN),
-                 ang_tol: float = 0.0) -> Optional[np.ndarray]:
+                 trans_tol: float = 0.0, ang_tol: float = 0.0) -> Optional[np.ndarray]:
         diagram_context = self.sim_env.diagram_context.Clone()
         plant_context = self.sim_env.plant.GetMyContextFromRoot(diagram_context)
 
         ik = InverseKinematics(self.sim_env.plant, plant_context)
 
+        tf_min = tf.translation() - np.ones(3) * trans_tol
+        tf_max = tf.translation() + np.ones(3) * trans_tol
         ik.AddPositionConstraint(self.sim_env.ee_frame, p_EETip, self.sim_env.plant.world_frame(),
-                                 tf.translation(), tf.translation())
+                                 tf_min, tf_max)
 
         ik.AddOrientationConstraint(self.sim_env.plant.world_frame(), tf.rotation(),
                                     self.sim_env.ee_frame, RotationMatrix(), ang_tol)

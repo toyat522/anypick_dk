@@ -9,6 +9,7 @@ from manipulation.station import LoadScenario, MakeHardwareStation
 from pydrake.all import (
     CameraInfo,
     CompositeTrajectory,
+    Cylinder,
     DiagramBuilder,
     HPolyhedron,
     MathematicalProgram,
@@ -17,7 +18,9 @@ from pydrake.all import (
     MultibodyPlant,
     Parser,
     RevoluteJoint,
+    Rgba,
     RigidTransform,
+    RotationMatrix,
     Simulator,
     Solve,
     StartMeshcat,
@@ -173,8 +176,46 @@ class SimEnvironment:
         PublishPositionTrajectory(full_traj, self.diagram_context, self.plant, self.visualizer)
         self.visualizer.ForcedPublish(self.visualizer.GetMyContextFromRoot(self.diagram_context))
 
-    def clear_visualization(self) -> None:
-        self.meshcat.Delete()
+    def visualize_frame(self, name: str, frame: RigidTransform, axis_length = 0.15, axis_radius = 0.005):
+        self.meshcat.SetTransform(name, frame)
+        self.meshcat.SetObject(
+            f"{name}/x", 
+            Cylinder(axis_radius, axis_length),
+            Rgba(1, 0, 0, 1)
+        )
+        self.meshcat.SetTransform(
+            f"{name}/x",
+            RigidTransform(
+                RotationMatrix.MakeYRotation(np.pi/2),
+                [axis_length / 2, 0, 0]
+            )
+        )
+        self.meshcat.SetObject(
+            f"{name}/y",
+            Cylinder(axis_radius, axis_length),
+            Rgba(0, 1, 0, 1)
+        )
+        self.meshcat.SetTransform(
+            f"{name}/y",
+            RigidTransform(
+                RotationMatrix.MakeXRotation(np.pi/2),
+                [0, axis_length / 2, 0]
+            )
+        )
+        self.meshcat.SetObject(
+            f"{name}/z",
+            Cylinder(axis_radius, axis_length),
+            Rgba(0, 0, 1, 1)
+        )
+        self.meshcat.SetTransform(
+            f"{name}/z",
+            RigidTransform([0, 0, axis_length / 2])
+        )
+
+    def clear_frame(self, name: str) -> None:
+        self.meshcat.Delete(f"{name}/x")
+        self.meshcat.Delete(f"{name}/y")
+        self.meshcat.Delete(f"{name}/z")
 
     def simulate(self) -> None:
         assert self.sim_time is not None, "SimEnvironment needs to call build_diagram_with_controller first"
