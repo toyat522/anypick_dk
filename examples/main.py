@@ -4,8 +4,6 @@ import py_trees
 
 from anypick_dk.constants import X_WCan, X_WGelatin, X_WMustard, X_WSugar
 from anypick_dk.orchestrator import Orchestrator
-from pydrake.all import GcsTrajectoryOptimization
-Subgraph = GcsTrajectoryOptimization.Subgraph
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
