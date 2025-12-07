@@ -1,4 +1,5 @@
 import numpy as np
+import open3d as o3d
 
 from anypick_dk.constants import PREGRASP_Z
 from pydrake.all import BezierCurve, CompositeTrajectory, PiecewisePolynomial, PointCloud, RigidTransform
@@ -141,3 +142,15 @@ def transform_pointcloud(pc_in_cam: PointCloud, X_WC: RigidTransform) -> PointCl
     pc_world = PointCloud(XYZ_world.shape[0])
     pc_world.mutable_xyzs()[:] = XYZ_world.T
     return pc_world
+
+def save_point_cloud(pc: PointCloud, path: str) -> None:
+    xyz = pc.xyzs().T
+
+    o3d_pc = o3d.geometry.PointCloud()
+    o3d_pc.points = o3d.utility.Vector3dVector(xyz)
+
+    if pc.has_rgbs():
+        rgb = pc.rgbs().T.astype(np.float32) / 255.0
+        o3d_pc.colors = o3d.utility.Vector3dVector(rgb)
+
+    o3d.io.write_point_cloud(path, o3d_pc, write_ascii=True)

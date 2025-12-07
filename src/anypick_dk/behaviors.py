@@ -9,7 +9,8 @@ from anypick_dk.constants import (
 from anypick_dk.planner import Planner
 from anypick_dk.sim_environment import SimEnvironment
 from anypick_dk.utils import (
-    concat_iiwa_traj, concat_wsg_traj, create_wsg_traj, get_pc_from_depth, transform_pointcloud
+    concat_iiwa_traj, concat_wsg_traj, create_wsg_traj, get_pc_from_depth, transform_pointcloud,
+    save_point_cloud
 )
 from functools import reduce
 from pydrake.all import Concatenate, Point, Rgba, RigidTransform
@@ -61,8 +62,13 @@ class GetGraspPose(py_trees.behaviour.Behaviour):
             self.logger.warning("Point cloud extraction failed!")
             return py_trees.common.Status.FAILURE
         self.logger.info("Point cloud extraction succeeded.")
+        save_point_cloud(obj_pc, "obj_pc.ply")
 
         # TODO: actually run grasp pose generation
+        pose = RigidTransform()
+        self.blackboard.poses.append(pose)
+        self.sim_env.visualize_frame("obj_frame", pose)
+
         print("\nThe grasp pose is visualized in meshcat.")
         user = input("Is the grasp pose valid? (y/n): ").strip().lower()
 
