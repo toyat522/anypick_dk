@@ -8,7 +8,8 @@ from anypick_dk.orchestrator import Orchestrator
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-gt_poses = [X_WCan, X_WGelatin, X_WSugar]  # Set to None if using perception system
+#gt_poses = [X_WCan, X_WGelatin, X_WSugar]  # Set to None if using perception system
+gt_poses = None
 
 
 def main():
