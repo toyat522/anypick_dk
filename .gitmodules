@@ -1,6 +1,6 @@
 [submodule "external/grounded_sam"]
 	path = external/grounded_sam
 	url = https://github.com/IDEA-Research/Grounded-Segment-Anything.git
-[submodule "external/gpd"]
-	path = external/gpd
-	url = https://github.com/atenpas/gpd.git
+[submodule "external/anypick_gpd"]
+	path = external/anypick_gpd
+	url = git@github.com:toyat522/anypick_gpd.git

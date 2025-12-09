@@ -5,6 +5,11 @@
 ### AnyPick DraKe Package Installation
 
 ```
+git clone git@github.com:toyat522/anypick_dk.git 
+git submodule update --init --recursive
+```
+
+```
 cd anypick_dk
 pip install -e .
 ```
@@ -28,6 +33,19 @@ Install Grounding DINO:
 ```
 cd GroundingDINO
 pip install -e .
+cd ../../..
+```
+
+### GPD Installation
+
+```
+cd external/anypick_gpd
+mkdir build
+cd build
+cmake ..
+make -j$(nproc)
+make install
+ldconfig
 ```
 
 ### Other Dependencies
