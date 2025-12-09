@@ -3,6 +3,7 @@ import numpy as np
 from pydrake.all import RigidTransform, RollPitchYaw
 
 GPD_OFFSET = 0.06
+GRASP_WAIT_TIME = 0.5
 IIWA_LEN = 7
 IIWA_MAX_TORQUE = 8
 MAX_FAILURES = 3

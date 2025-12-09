@@ -4,7 +4,7 @@ import py_trees
 
 from anypick_dk.grounded_sam_wrapper import GroundedSamWrapper
 from anypick_dk.constants import (
-    NUM_CAMERAS, NUM_PICK_REGIONS, q_Object, VOXEL_SIZE, WSG_CLOSED, WSG_LEN, WSG_OPENED
+    GRASP_WAIT_TIME, NUM_CAMERAS, NUM_PICK_REGIONS, q_Object, VOXEL_SIZE, WSG_CLOSED, WSG_LEN, WSG_OPENED
 )
 from anypick_dk.grasp_detector import GraspDetector
 from anypick_dk.planner import Planner
@@ -14,7 +14,7 @@ from anypick_dk.utils import (
     transform_pointcloud, save_point_cloud
 )
 from functools import reduce
-from pydrake.all import Concatenate, Point, Rgba, RigidTransform
+from pydrake.all import BezierCurve, CompositeTrajectory, Concatenate, Point, Rgba, RigidTransform
 
 
 class EndBehavior(py_trees.behaviour.Behaviour):
@@ -82,8 +82,8 @@ class GetGraspPose(py_trees.behaviour.Behaviour):
         print("\nThe grasp pose is visualized in meshcat.")
         user = input("Is the grasp pose valid? (y/n): ").strip().lower()
 
+        self.sim_env.clear_frame("obj_frame")
         if user != 'y':
-            self.sim_env.clear_frame("obj_frame")
             self.logger.warning("Grasp pose calculation failed!")
             return py_trees.common.Status.FAILURE
         self.logger.info("Grasp pose calculation succeeded.")
@@ -196,7 +196,7 @@ class PlanAndExecuteTrajectory(py_trees.behaviour.Behaviour):
             # Calculate path to pregrasp pose
             q_pregrasp = self.planner.solve_ik(get_pregrasp_pose(pose), q_Object)
             if q_pregrasp is None:
-                self.logger.warning("Ending plan due to IK failure.")
+                self.logger.warning("Ending plan due to IK failure for pregrasp pose.")
                 return py_trees.common.Status.FAILURE
             pregrasp_node = self.planner.gcs.AddRegions(
                 [Point(np.concat([q_pregrasp, np.zeros(WSG_LEN)]))], order=0, name=f"obj{i}"
@@ -217,7 +217,7 @@ class PlanAndExecuteTrajectory(py_trees.behaviour.Behaviour):
             # Calculate path from pregrasp to object
             q_obj = self.planner.solve_ik(pose, q_Object)
             if q_obj is None:
-                self.logger.warning("Ending plan due to IK failure.")
+                self.logger.warning("Ending plan due to IK failure for grasp pose.")
                 return py_trees.common.Status.FAILURE
             obj_node = self.planner.gcs.AddRegions(
                 [Point(np.concat([q_obj, np.zeros(WSG_LEN)]))], order=0, name=f"obj{i}"
@@ -231,6 +231,18 @@ class PlanAndExecuteTrajectory(py_trees.behaviour.Behaviour):
                 self.logger.warning("Ending plan due to GCS failure from path to obj.")
                 return py_trees.common.Status.FAILURE
 
+            wsg_trajs.append(create_wsg_traj(iiwa_trajs[-1].end_time(), WSG_OPENED, WSG_OPENED, WSG_OPENED))
+
+            # Add stationary trajectory at object position while gripper closes
+            q_full = np.concatenate([q_obj, np.zeros(WSG_LEN)]).reshape(-1, 1)
+            stationary_segment = BezierCurve(
+                0, 
+                GRASP_WAIT_TIME,
+                np.hstack([q_full, q_full])
+            )
+            iiwa_trajs.append(CompositeTrajectory([stationary_segment]))
+
+            # Close gripper during stationary period
             wsg_trajs.append(create_wsg_traj(iiwa_trajs[-1].end_time(), WSG_OPENED, WSG_OPENED, WSG_CLOSED))
 
             # Calculate path from object to pre-place
