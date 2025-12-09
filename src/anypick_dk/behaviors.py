@@ -10,8 +10,8 @@ from anypick_dk.grasp_detector import GraspDetector
 from anypick_dk.planner import Planner
 from anypick_dk.sim_environment import SimEnvironment
 from anypick_dk.utils import (
-    concat_iiwa_traj, concat_wsg_traj, create_wsg_traj, get_pc_from_depth, transform_pointcloud,
-    save_point_cloud
+    concat_iiwa_traj, concat_wsg_traj, create_wsg_traj, get_pc_from_depth, get_pregrasp_pose,
+    transform_pointcloud, save_point_cloud
 )
 from functools import reduce
 from pydrake.all import Concatenate, Point, Rgba, RigidTransform
@@ -35,6 +35,7 @@ class GetGraspPose(py_trees.behaviour.Behaviour):
         self.planner = planner
         self.blackboard = py_trees.blackboard.Client(name=name)
         self.blackboard.register_key("masks", access=py_trees.common.Access.READ)
+        self.blackboard.register_key("num_detections", access=py_trees.common.Access.WRITE)
         self.blackboard.register_key("poses", access=py_trees.common.Access.WRITE)
 
     def update(self):
@@ -87,6 +88,7 @@ class GetGraspPose(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.FAILURE
         self.logger.info("Grasp pose calculation succeeded.")
 
+        self.blackboard.num_detections += 1
         return py_trees.common.Status.SUCCESS
 
 
@@ -97,11 +99,11 @@ class GetGTGraspPose(py_trees.behaviour.Behaviour):
         self.sim_env = sim_env
         self.gt_poses = gt_poses
         self.blackboard = py_trees.blackboard.Client(name=name)
-        self.blackboard.register_key("num_detections", access=py_trees.common.Access.READ)
+        self.blackboard.register_key("num_detections", access=py_trees.common.Access.WRITE)
         self.blackboard.register_key("poses", access=py_trees.common.Access.WRITE)
     
     def update(self):
-        pose = self.gt_poses[self.blackboard.num_detections - 1]
+        pose = self.gt_poses[self.blackboard.num_detections]
         self.sim_env.visualize_frame("obj_frame", pose)
 
         print("\nThe grasp pose is visualized in meshcat.")
@@ -114,6 +116,7 @@ class GetGTGraspPose(py_trees.behaviour.Behaviour):
         self.logger.info("Grasp pose calculation succeeded.")
 
         self.blackboard.poses.append(pose)
+        self.blackboard.num_detections += 1
         return py_trees.common.Status.SUCCESS
 
 
@@ -125,7 +128,6 @@ class GroundedSamDetect(py_trees.behaviour.Behaviour):
         self.gdsam = gdsam
         self.blackboard = py_trees.blackboard.Client(name=name)
         self.blackboard.register_key("masks", access=py_trees.common.Access.WRITE)
-        self.blackboard.register_key("num_detections", access=py_trees.common.Access.WRITE)
 
     def update(self):
         prompt = input("\nEnter GroundingDINO prompt to detect: ")
@@ -158,8 +160,7 @@ class GroundedSamDetect(py_trees.behaviour.Behaviour):
             ).astype(bool)
             masks.append(mask)
 
-        self.logger.info(f"Detection confirmed. Total number of detections: {self.blackboard.num_detections}.")
-        self.blackboard.num_detections += 1
+        self.logger.info(f"Grounded SAM detection confirmed.")
         self.blackboard.masks = masks
         return py_trees.common.Status.SUCCESS
 
@@ -192,11 +193,32 @@ class PlanAndExecuteTrajectory(py_trees.behaviour.Behaviour):
         wsg_trajs = []
         for i, pose in enumerate(self.blackboard.poses):
 
+            # Calculate path to pregrasp pose
+            q_pregrasp = self.planner.solve_ik(get_pregrasp_pose(pose), q_Object)
+            if q_pregrasp is None:
+                self.logger.warning("Ending plan due to IK failure.")
+                return py_trees.common.Status.FAILURE
+            pregrasp_node = self.planner.gcs.AddRegions(
+                [Point(np.concat([q_pregrasp, np.zeros(WSG_LEN)]))], order=0, name=f"obj{i}"
+            )
+            self.planner.gcs.AddEdges(pregrasp_node, self.planner.nodes[f"object"])
+            self.planner.gcs.AddEdges(self.planner.nodes[f"object"], pregrasp_node)
+            for j in range(NUM_PICK_REGIONS):
+                self.planner.gcs.AddEdges(pregrasp_node, self.planner.nodes[f"pick{j}"])
+                self.planner.gcs.AddEdges(self.planner.nodes[f"pick{j}"], pregrasp_node)
+
+            iiwa_trajs.append(self.planner.solve_gcs(prev_end, pregrasp_node))
+            if iiwa_trajs[-1] is None:
+                self.logger.warning("Ending plan due to GCS failure from pregrasp to obj.")
+                return py_trees.common.Status.FAILURE
+
+            wsg_trajs.append(create_wsg_traj(iiwa_trajs[-1].end_time(), WSG_OPENED, WSG_OPENED, WSG_OPENED))
+
+            # Calculate path from pregrasp to object
             q_obj = self.planner.solve_ik(pose, q_Object)
             if q_obj is None:
                 self.logger.warning("Ending plan due to IK failure.")
                 return py_trees.common.Status.FAILURE
-
             obj_node = self.planner.gcs.AddRegions(
                 [Point(np.concat([q_obj, np.zeros(WSG_LEN)]))], order=0, name=f"obj{i}"
             )
@@ -204,13 +226,14 @@ class PlanAndExecuteTrajectory(py_trees.behaviour.Behaviour):
                 self.planner.gcs.AddEdges(obj_node, self.planner.nodes[f"pick{j}"])
                 self.planner.gcs.AddEdges(self.planner.nodes[f"pick{j}"], obj_node)
 
-            iiwa_trajs.append(self.planner.solve_gcs(prev_end, obj_node))
+            iiwa_trajs.append(self.planner.solve_gcs(pregrasp_node, obj_node))
             if iiwa_trajs[-1] is None:
                 self.logger.warning("Ending plan due to GCS failure from path to obj.")
                 return py_trees.common.Status.FAILURE
 
             wsg_trajs.append(create_wsg_traj(iiwa_trajs[-1].end_time(), WSG_OPENED, WSG_OPENED, WSG_CLOSED))
 
+            # Calculate path from object to pre-place
             iiwa_trajs.append(self.planner.solve_gcs(obj_node, pres[i]))
             if iiwa_trajs[-1] is None:
                 self.logger.warning("Ending plan due to GCS failure from obj to pre-place.")
@@ -218,6 +241,7 @@ class PlanAndExecuteTrajectory(py_trees.behaviour.Behaviour):
 
             wsg_trajs.append(create_wsg_traj(iiwa_trajs[-1].end_time(), WSG_CLOSED, WSG_CLOSED, WSG_CLOSED))
 
+            # Calculate path from pre-place to place
             iiwa_trajs.append(self.planner.solve_gcs(pres[i], places[i]))
             if iiwa_trajs[-1] is None:
                 self.logger.warning("Ending plan due to GCS failure from pre-place to place.")

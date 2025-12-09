@@ -1,7 +1,7 @@
 import numpy as np
 import open3d as o3d
 
-from anypick_dk.constants import PREGRASP_Z
+from anypick_dk.constants import PREGRASP_OFFSET
 from pydrake.all import BezierCurve, CompositeTrajectory, PiecewisePolynomial, PointCloud, RigidTransform
 from typing import Optional
 
@@ -104,10 +104,7 @@ def concat_wsg_traj(traj1, traj2):
     return CompositeTrajectory([combined])
 
 def get_pregrasp_pose(pose: RigidTransform) -> RigidTransform:
-    return RigidTransform(
-        pose.rotation(),
-        pose.translation() + np.array([0.0, 0.0, PREGRASP_Z])
-    )
+    return pose @ RigidTransform([0, -PREGRASP_OFFSET, 0])
 
 def get_pc_from_depth(depth_img, intrinsics) -> PointCloud:
     fx = intrinsics.focal_x()

@@ -6,7 +6,7 @@ import os
 import subprocess
 import tempfile
 
-from anypick_dk.constants import GPD_Y_OFFSET, NUM_PICK_REGIONS, q_Object, WSG_LEN
+from anypick_dk.constants import GPD_OFFSET, NUM_PICK_REGIONS, q_Object, WSG_LEN
 from anypick_dk.planner import Planner
 from pathlib import Path
 from pydrake.all import RigidTransform, RollPitchYaw, RotationMatrix, Quaternion
@@ -93,7 +93,7 @@ class GraspDetector:
 
             # Apply -90° rotation around z and shift along local y
             rotated_tf = grasp_tf @ RigidTransform(R_local, [0, 0, 0])
-            rotated_tf = rotated_tf @ RigidTransform([0, GPD_Y_OFFSET, 0])
+            rotated_tf = rotated_tf @ RigidTransform([0, GPD_OFFSET, 0])
             new_quat = rotated_tf.rotation().ToQuaternion()
             rotated_grasps.append(GraspPose(
                 position=rotated_tf.translation(),
@@ -105,7 +105,7 @@ class GraspDetector:
             # Also add 180° flipped version around y-axis, then shift along local y
             flipped_tf = grasp_tf @ RigidTransform(R_local, [0, 0, 0])
             flipped_tf = flipped_tf @ RigidTransform(R_flip, [0, 0, 0])
-            flipped_tf = flipped_tf @ RigidTransform([0, GPD_Y_OFFSET, 0])
+            flipped_tf = flipped_tf @ RigidTransform([0, GPD_OFFSET, 0])
             flipped_quat = flipped_tf.rotation().ToQuaternion()
             rotated_grasps.append(GraspPose(
                 position=flipped_tf.translation(),
