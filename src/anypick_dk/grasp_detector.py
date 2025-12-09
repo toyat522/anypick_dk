@@ -91,7 +91,7 @@ class GraspDetector:
         for grasp in grasps:
             grasp_tf = grasp.to_drake()
 
-            # Apply -90° rotation around z and shift along local y
+            # Apply -90 deg rotation around z and shift along local y
             rotated_tf = grasp_tf @ RigidTransform(R_local, [0, 0, 0])
             rotated_tf = rotated_tf @ RigidTransform([0, GPD_OFFSET, 0])
             new_quat = rotated_tf.rotation().ToQuaternion()
@@ -102,7 +102,7 @@ class GraspDetector:
                 width=grasp.width
             ))
 
-            # Also add 180° flipped version around y-axis, then shift along local y
+            # Also add 180 deg flipped version around y-axis, then shift along local y
             flipped_tf = grasp_tf @ RigidTransform(R_local, [0, 0, 0])
             flipped_tf = flipped_tf @ RigidTransform(R_flip, [0, 0, 0])
             flipped_tf = flipped_tf @ RigidTransform([0, GPD_OFFSET, 0])
