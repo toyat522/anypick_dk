@@ -10,8 +10,8 @@ from anypick_dk.grasp_detector import GraspDetector
 from anypick_dk.planner import Planner
 from anypick_dk.sim_environment import SimEnvironment
 from anypick_dk.utils import (
-    concat_iiwa_traj, concat_wsg_traj, create_wsg_traj, get_pc_from_depth, get_pregrasp_pose,
-    transform_pointcloud, save_point_cloud
+    concat_iiwa_traj, concat_wsg_traj, create_wsg_traj, get_pc_from_depth,
+    get_pregrasp_pose, transform_pointcloud, save_point_cloud
 )
 from functools import reduce
 from pydrake.all import BezierCurve, CompositeTrajectory, Concatenate, Point, Rgba, RigidTransform
@@ -194,13 +194,15 @@ class PlanAndExecuteTrajectory(py_trees.behaviour.Behaviour):
         for i, pose in enumerate(self.blackboard.poses):
 
             # Calculate path to pregrasp pose
-            q_pregrasp = self.planner.solve_ik(get_pregrasp_pose(pose), q_Object)
+            q_pregrasp = self.planner.solve_ik(get_pregrasp_pose(pose), q_Object, 0.005, np.deg2rad(5))
             if q_pregrasp is None:
                 self.logger.warning("Ending plan due to IK failure for pregrasp pose.")
                 return py_trees.common.Status.FAILURE
             pregrasp_node = self.planner.gcs.AddRegions(
-                [Point(np.concat([q_pregrasp, np.zeros(WSG_LEN)]))], order=0, name=f"obj{i}"
+                [Point(np.concat([q_pregrasp, np.zeros(WSG_LEN)]))], order=0, name=f"pregrasp{i}"
             )
+            self.planner.gcs.AddEdges(pregrasp_node, self.planner.nodes[f"home"])
+            self.planner.gcs.AddEdges(self.planner.nodes[f"home"], pregrasp_node)
             self.planner.gcs.AddEdges(pregrasp_node, self.planner.nodes[f"object"])
             self.planner.gcs.AddEdges(self.planner.nodes[f"object"], pregrasp_node)
             for j in range(NUM_PICK_REGIONS):
@@ -209,7 +211,7 @@ class PlanAndExecuteTrajectory(py_trees.behaviour.Behaviour):
 
             iiwa_trajs.append(self.planner.solve_gcs(prev_end, pregrasp_node))
             if iiwa_trajs[-1] is None:
-                self.logger.warning("Ending plan due to GCS failure from pregrasp to obj.")
+                self.logger.warning("Ending plan due to GCS failure from previous node to pregrasp.")
                 return py_trees.common.Status.FAILURE
 
             wsg_trajs.append(create_wsg_traj(iiwa_trajs[-1].end_time(), WSG_OPENED, WSG_OPENED, WSG_OPENED))
@@ -228,7 +230,7 @@ class PlanAndExecuteTrajectory(py_trees.behaviour.Behaviour):
 
             iiwa_trajs.append(self.planner.solve_gcs(pregrasp_node, obj_node))
             if iiwa_trajs[-1] is None:
-                self.logger.warning("Ending plan due to GCS failure from path to obj.")
+                self.logger.warning("Ending plan due to GCS failure from pregrasp to obj.")
                 return py_trees.common.Status.FAILURE
 
             wsg_trajs.append(create_wsg_traj(iiwa_trajs[-1].end_time(), WSG_OPENED, WSG_OPENED, WSG_OPENED))
@@ -243,7 +245,7 @@ class PlanAndExecuteTrajectory(py_trees.behaviour.Behaviour):
             iiwa_trajs.append(CompositeTrajectory([stationary_segment]))
 
             # Close gripper during stationary period
-            wsg_trajs.append(create_wsg_traj(iiwa_trajs[-1].end_time(), WSG_OPENED, WSG_OPENED, WSG_CLOSED))
+            wsg_trajs.append(create_wsg_traj(iiwa_trajs[-1].end_time(), WSG_OPENED, WSG_CLOSED, WSG_CLOSED))
 
             # Calculate path from object to pre-place
             iiwa_trajs.append(self.planner.solve_gcs(obj_node, pres[i]))

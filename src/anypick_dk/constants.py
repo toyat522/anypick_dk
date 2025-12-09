@@ -2,14 +2,14 @@ import numpy as np
 
 from pydrake.all import RigidTransform, RollPitchYaw
 
-GPD_OFFSET = 0.06
+GPD_OFFSET = 0.04
 GRASP_WAIT_TIME = 0.5
 IIWA_LEN = 7
 IIWA_MAX_TORQUE = 8
 MAX_FAILURES = 3
 NUM_CAMERAS = 2
 NUM_PICK_REGIONS = 2
-NUM_DETECTIONS = 3
+NUM_DETECTIONS = 2
 PREGRASP_OFFSET = 0.1
 p_EETip = np.array([0, 0.1, 0])
 q_BotShelfPlace = np.array([0, 1.15303645, 0, -1.42083483, 0, -0.94480558, 0])
