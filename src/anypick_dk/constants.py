@@ -2,10 +2,12 @@ import numpy as np
 
 from pydrake.all import RigidTransform, RollPitchYaw
 
+GPD_Y_OFFSET = 0.04
 IIWA_LEN = 7
 IIWA_MAX_TORQUE = 8
 MAX_FAILURES = 3
 NUM_CAMERAS = 2
+NUM_PICK_REGIONS = 2
 NUM_DETECTIONS = 3
 PREGRASP_Z = 0.1
 p_EETip = np.array([0, 0.1, 0])

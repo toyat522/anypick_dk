@@ -4,7 +4,7 @@ import importlib.resources as resources
 import logging
 import numpy as np
 from anypick_dk.constants import (
-    IIWA_LEN, p_EETip, q_BotShelfPlace, q_BotShelfPre, q_Init, q_MidShelfPlace, q_MidShelfPre,
+    IIWA_LEN, NUM_PICK_REGIONS, p_EETip, q_BotShelfPlace, q_BotShelfPre, q_Init, q_MidShelfPlace, q_MidShelfPre,
     q_TopShelfPlace, q_TopShelfPre, WSG_LEN, WSG_VEL_BOUND
 )
 from anypick_dk.sim_environment import SimEnvironment
@@ -33,47 +33,42 @@ class Planner:
         self.sim_env = sim_env
 
         iris_regions_file = str(resources.files("anypick_dk") / "iris_regions" / "shelf_regions.yaml")
-        iris_regions = LoadIrisRegionsYamlFile(iris_regions_file)
+        self.iris_regions = LoadIrisRegionsYamlFile(iris_regions_file)
+
         gcs = GcsTrajectoryOptimization(IIWA_LEN + WSG_LEN)
         nodes = {
             "start_point": gcs.AddRegions(
                 [Point(np.concat([q_Init, np.zeros(WSG_LEN)]))], order=0, name="start_point"
             ),
             "start": gcs.AddRegions(
-                [iris_regions["start_region"]], order=1, name="start"
+                [self.iris_regions["start_region"]], order=1, name="start"
             ),
             "home": gcs.AddRegions(
-                [iris_regions["home_region"]], order=1, name="home"
+                [self.iris_regions["home_region"]], order=1, name="home"
             ),
             "transition": gcs.AddRegions(
-                [iris_regions["transition_region"]], order=1, name="transition"
+                [self.iris_regions["transition_region"]], order=1, name="transition"
             ),
             "top_shelf": gcs.AddRegions(
-                [iris_regions["top_shelf_region"]], order=1, name="top_shelf"
+                [self.iris_regions["top_shelf_region"]], order=1, name="top_shelf"
             ),
             "top_shelf_approach": gcs.AddRegions(
-                [iris_regions["top_shelf_approach_region"]], order=1, name="top_shelf_approach"
+                [self.iris_regions["top_shelf_approach_region"]], order=1, name="top_shelf_approach"
             ),
             "mid_shelf": gcs.AddRegions(
-                [iris_regions["mid_shelf_region"]], order=1, name="mid_shelf"
+                [self.iris_regions["mid_shelf_region"]], order=1, name="mid_shelf"
             ),
             "mid_shelf_approach": gcs.AddRegions(
-                [iris_regions["mid_shelf_approach_region"]], order=1, name="mid_shelf_approach"
+                [self.iris_regions["mid_shelf_approach_region"]], order=1, name="mid_shelf_approach"
             ),
             "bot_shelf": gcs.AddRegions(
-                [iris_regions["bot_shelf_region"]], order=1, name="bot_shelf_region"
+                [self.iris_regions["bot_shelf_region"]], order=1, name="bot_shelf_region"
             ),
             "bot_shelf_approach": gcs.AddRegions(
-                [iris_regions["bot_shelf_approach_region"]], order=1, name="bot_shelf_approach"
+                [self.iris_regions["bot_shelf_approach_region"]], order=1, name="bot_shelf_approach"
             ),
             "object": gcs.AddRegions(
-                [iris_regions["object_region"]], order=1, name="object"
-            ),
-            "pick0": gcs.AddRegions(
-                [iris_regions["pick_region_0"]], order=1, name="pick0"
-            ),
-            "pick1": gcs.AddRegions(
-                [iris_regions["pick_region_1"]], order=1, name="pick1"
+                [self.iris_regions["object_region"]], order=1, name="object"
             ),
             "top_shelf_place": gcs.AddRegions(
                 [Point(np.concat([q_TopShelfPlace, np.zeros(WSG_LEN)]))], order=0, name="top_shelf_place"
@@ -95,18 +90,20 @@ class Planner:
             ),
         }
 
+        for i in range(NUM_PICK_REGIONS):
+            nodes[f"pick{i}"] = gcs.AddRegions(
+                [self.iris_regions[f"pick_region_{i}"]], order=1, name=f"pick{i}"
+            )
+
         gcs.AddEdges(nodes["start_point"], nodes["start"])
         gcs.AddEdges(nodes["start"], nodes["home"])
 
         gcs.AddEdges(nodes["home"], nodes["object"])
         gcs.AddEdges(nodes["object"], nodes["home"])
 
-        gcs.AddEdges(nodes["object"], nodes["pick0"])
-        gcs.AddEdges(nodes["pick0"], nodes["object"])
-        gcs.AddEdges(nodes["object"], nodes["pick1"])
-        gcs.AddEdges(nodes["pick1"], nodes["object"])
-        gcs.AddEdges(nodes["pick0"], nodes["pick1"])
-        gcs.AddEdges(nodes["pick1"], nodes["pick0"])
+        for i in range(NUM_PICK_REGIONS):
+            gcs.AddEdges(nodes["object"], nodes[f"pick{i}"])
+            gcs.AddEdges(nodes[f"pick{i}"], nodes["object"])
 
         gcs.AddEdges(nodes["home"], nodes["top_shelf_approach"])
         gcs.AddEdges(nodes["top_shelf_approach"], nodes["home"])

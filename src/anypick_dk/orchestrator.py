@@ -7,18 +7,20 @@ from anypick_dk.behaviors import (
     PlanAndExecuteTrajectory, EndBehavior
 )
 from anypick_dk.constants import MAX_FAILURES, NUM_DETECTIONS
+from anypick_dk.grasp_detector import GraspDetector
 from anypick_dk.grounded_sam_wrapper import GroundedSamWrapper
 from anypick_dk.planner import Planner
 from anypick_dk.sim_environment import SimEnvironment
 
 
 class Orchestrator:
-    def __init__(self, scenario_file: str, gt_poses = None):
+    def __init__(self, scenario_file: str, gpd_config_file: str, gt_poses = None):
         self.logger = logging.getLogger(__name__)
 
         self.sim_env = SimEnvironment(scenario_file)
         self.planner = Planner(self.sim_env)
         self.gdsam = GroundedSamWrapper()
+        self.grasp_detector = GraspDetector(gpd_config_file)
 
         self.tree = self._create_tree(gt_poses)
         self.tree.setup()
@@ -44,7 +46,8 @@ class Orchestrator:
         detect_sequence = py_trees.composites.Sequence(name="detect_one_object", memory=True)
         detect_sequence.add_children([
             GroundedSamDetect(self.sim_env, self.gdsam),
-            GetGraspPose(self.sim_env) if gt_poses is None else GetGTGraspPose(self.sim_env, gt_poses)
+            GetGraspPose(self.sim_env, self.grasp_detector, self.planner) if gt_poses is None \
+                else GetGTGraspPose(self.sim_env, gt_poses)
         ])
 
         retry_on_detect_fail = py_trees.decorators.Retry(

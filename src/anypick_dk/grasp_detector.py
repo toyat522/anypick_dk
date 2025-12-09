@@ -6,7 +6,10 @@ import os
 import subprocess
 import tempfile
 
+from anypick_dk.constants import GPD_Y_OFFSET, NUM_PICK_REGIONS, q_Object, WSG_LEN
+from anypick_dk.planner import Planner
 from pathlib import Path
+from pydrake.all import RigidTransform, RollPitchYaw, RotationMatrix, Quaternion
 from typing import List, Optional
 
 
@@ -37,6 +40,12 @@ class GraspPose:
         T[:3, 3] = self.position
         return T
 
+    def to_drake(self):
+        qw, qx, qy, qz = self.orientation
+        quaternion = Quaternion(w=qw, x=qx, y=qy, z=qz)
+        rotation = RotationMatrix(quaternion)
+        return RigidTransform(rotation, self.position)
+
     def __repr__(self):
         return (f"GraspPose(pos={self.position}, "
                 f"quat={self.orientation}, "
@@ -56,7 +65,6 @@ class GraspDetector:
         self.config_file = config_file
 
     def detect_grasps(self, pc_file: str, out_file: Optional[str] = None) -> List[GraspPose]:
-
         pc_path = Path(pc_file)
         if not pc_path.exists():
             raise FileNotFoundError(f"Point cloud file not found: {pc_path}")
@@ -76,15 +84,77 @@ class GraspDetector:
             temp_output
         )
 
+        # Rotate by -90 degrees around Z-axis to match Drake frame and add flipped frames
+        R_local = RollPitchYaw(0, 0, -np.pi / 2).ToRotationMatrix()
+        R_flip = RotationMatrix.MakeYRotation(np.pi)
+        rotated_grasps = []
+        for grasp in grasps:
+            grasp_tf = grasp.to_drake()
+
+            # Apply -90° rotation around z and shift along local y
+            rotated_tf = grasp_tf @ RigidTransform(R_local, [0, 0, 0])
+            rotated_tf = rotated_tf @ RigidTransform([0, GPD_Y_OFFSET, 0])
+            new_quat = rotated_tf.rotation().ToQuaternion()
+            rotated_grasps.append(GraspPose(
+                position=rotated_tf.translation(),
+                orientation=[new_quat.w(), new_quat.x(), new_quat.y(), new_quat.z()],
+                score=grasp.score,
+                width=grasp.width
+            ))
+
+            # Also add 180° flipped version around y-axis, then shift along local y
+            flipped_tf = grasp_tf @ RigidTransform(R_local, [0, 0, 0])
+            flipped_tf = flipped_tf @ RigidTransform(R_flip, [0, 0, 0])
+            flipped_tf = flipped_tf @ RigidTransform([0, GPD_Y_OFFSET, 0])
+            flipped_quat = flipped_tf.rotation().ToQuaternion()
+            rotated_grasps.append(GraspPose(
+                position=flipped_tf.translation(),
+                orientation=[flipped_quat.w(), flipped_quat.x(), flipped_quat.y(), flipped_quat.z()],
+                score=grasp.score,
+                width=grasp.width
+            ))
+
         # Save to output file if not None
         if out_file is not None:
-            self.save_grasps(grasps, Path(out_file))
+            self.save_grasps(rotated_grasps, Path(out_file))
 
         # Clean up temporary file
         if os.path.exists(temp_output):
             os.remove(temp_output)
 
-        return grasps
+        return rotated_grasps
+
+    def get_best_grasp(self, grasps: List[GraspPose], planner: Planner) -> Optional[GraspPose]:
+        valid_grasps = []
+
+        for grasp in grasps:
+            # Solve IK for this grasp pose
+            pose = grasp.to_drake()
+            q = planner.solve_ik(pose, q0=q_Object)
+
+            # Skip if IK fails
+            if q is None:
+                continue
+
+            # Check if configuration is in pick region
+            q_full = np.concatenate([q, np.zeros(WSG_LEN)])
+            for i in range(NUM_PICK_REGIONS):
+                pick_region = planner.iris_regions[f"pick_region_{i}"]
+                if pick_region.PointInSet(q_full):
+                    valid_grasps.append(grasp)
+                    break
+
+        if not valid_grasps:
+            self.logger.warning("No valid grasps found within pick regions!")
+            return None
+
+        # Return the best valid grasp by score
+        best_grasp = max(valid_grasps, key=lambda g: g.score)
+        self.logger.info(
+            f"Selected best grasp with score {best_grasp.score:.3f} "
+            f"({len(valid_grasps)}/{len(grasps)} grasps were valid)."
+        )
+        return best_grasp
    
     def _run_gpd_and_parse(self, config_file: str, pcd_file: str, output_file: str) -> List[GraspPose]:
         process = subprocess.Popen(

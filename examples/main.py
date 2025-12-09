@@ -14,7 +14,9 @@ gt_poses = None
 
 def main():
     scenario_file = str(resources.files("anypick_dk") / "scenarios" / "shelf_with_objects.yaml")
-    orchestrator = Orchestrator(scenario_file, gt_poses)
+    gpd_config_file = str(resources.files("anypick_dk") / "cfg" / "gpd_params.cfg")
+
+    orchestrator = Orchestrator(scenario_file, gpd_config_file, gt_poses)
     py_trees.display.render_dot_tree(orchestrator.tree.root)
 
     while True:

@@ -4,8 +4,9 @@ import py_trees
 
 from anypick_dk.grounded_sam_wrapper import GroundedSamWrapper
 from anypick_dk.constants import (
-    NUM_CAMERAS, q_Object, VOXEL_SIZE, WSG_CLOSED, WSG_LEN, WSG_OPENED
+    NUM_CAMERAS, NUM_PICK_REGIONS, q_Object, VOXEL_SIZE, WSG_CLOSED, WSG_LEN, WSG_OPENED
 )
+from anypick_dk.grasp_detector import GraspDetector
 from anypick_dk.planner import Planner
 from anypick_dk.sim_environment import SimEnvironment
 from anypick_dk.utils import (
@@ -26,10 +27,12 @@ class EndBehavior(py_trees.behaviour.Behaviour):
 
 
 class GetGraspPose(py_trees.behaviour.Behaviour):
-    def __init__(self, sim_env: SimEnvironment):
+    def __init__(self, sim_env: SimEnvironment, detector: GraspDetector, planner: Planner):
         name = "get_grasp_pose"
         super().__init__(name)
         self.sim_env = sim_env
+        self.detector = detector
+        self.planner = planner
         self.blackboard = py_trees.blackboard.Client(name=name)
         self.blackboard.register_key("masks", access=py_trees.common.Access.READ)
         self.blackboard.register_key("poses", access=py_trees.common.Access.WRITE)
@@ -62,10 +65,16 @@ class GetGraspPose(py_trees.behaviour.Behaviour):
             self.logger.warning("Point cloud extraction failed!")
             return py_trees.common.Status.FAILURE
         self.logger.info("Point cloud extraction succeeded.")
-        save_point_cloud(obj_pc, "obj_pc.ply")
+        save_point_cloud(obj_pc, "obj_pc.pcd")
 
-        # TODO: actually run grasp pose generation
-        pose = RigidTransform()
+        grasps = self.detector.detect_grasps("./obj_pc.pcd")
+        best_grasp = self.detector.get_best_grasp(grasps, self.planner)
+
+        if best_grasp is None:
+            self.logger.warning("No valid grasp found!")
+            return py_trees.common.Status.FAILURE
+
+        pose = best_grasp.to_drake()
         self.blackboard.poses.append(pose)
         self.sim_env.visualize_frame("obj_frame", pose)
 
@@ -191,10 +200,9 @@ class PlanAndExecuteTrajectory(py_trees.behaviour.Behaviour):
             obj_node = self.planner.gcs.AddRegions(
                 [Point(np.concat([q_obj, np.zeros(WSG_LEN)]))], order=0, name=f"obj{i}"
             )
-            self.planner.gcs.AddEdges(obj_node, self.planner.nodes["pick0"])
-            self.planner.gcs.AddEdges(self.planner.nodes["pick0"], obj_node)
-            self.planner.gcs.AddEdges(obj_node, self.planner.nodes["pick1"])
-            self.planner.gcs.AddEdges(self.planner.nodes["pick1"], obj_node)
+            for j in range(NUM_PICK_REGIONS):
+                self.planner.gcs.AddEdges(obj_node, self.planner.nodes[f"pick{j}"])
+                self.planner.gcs.AddEdges(self.planner.nodes[f"pick{j}"], obj_node)
 
             iiwa_trajs.append(self.planner.solve_gcs(prev_end, obj_node))
             if iiwa_trajs[-1] is None:
