@@ -51,5 +51,5 @@ ldconfig
 ### Other Dependencies
 
 ```
-pip install py-trees
+pip install open3d py-trees
 ```
